@@ -2,15 +2,15 @@
 // Task 4: room creation/joining, lobby player management, host control.
 // (Authoritative game loop is added in Task 5.)
 
-import express from 'express';
-import { createServer } from 'http';
-import { createServer as createHttpsServer } from 'https';
-import { Server } from 'socket.io';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import os from 'os';
-import selfsigned from 'selfsigned';
-import { GameSim } from './gamesim.js';
+import express from "express";
+import { createServer } from "http";
+import { createServer as createHttpsServer } from "https";
+import { Server } from "socket.io";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+import os from "os";
+import selfsigned from "selfsigned";
+import { GameSim } from "./gamesim.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -23,7 +23,7 @@ function lanIPs() {
   const nets = os.networkInterfaces();
   for (const name of Object.keys(nets)) {
     for (const net of nets[name] || []) {
-      if (net.family === 'IPv4' && !net.internal) out.push(net.address);
+      if (net.family === "IPv4" && !net.internal) out.push(net.address);
     }
   }
   return out;
@@ -33,32 +33,35 @@ function lanIPs() {
 // Generate a throwaway self-signed certificate at startup. Use SHA-256 (SHA-1 is
 // rejected by modern TLS stacks) and list the LAN IPs as subjectAltNames.
 const altNames = [
-  { type: 2, value: 'localhost' },          // DNS
-  { type: 7, ip: '127.0.0.1' },             // IP
+  { type: 2, value: "localhost" }, // DNS
+  { type: 7, ip: "127.0.0.1" }, // IP
   ...lanIPs().map((ip) => ({ type: 7, ip })),
 ];
 const pems = await selfsigned.generate(
-  [{ name: 'commonName', value: 'tilt-tiles.local' }],
+  [{ name: "commonName", value: "tilt-tiles.local" }],
   {
     days: 365,
     keySize: 2048,
-    algorithm: 'sha256',
-    extensions: [{ name: 'subjectAltName', altNames }],
-  }
+    algorithm: "sha256",
+    extensions: [{ name: "subjectAltName", altNames }],
+  },
 );
-const httpsServer = createHttpsServer({ key: pems.private, cert: pems.cert }, app);
+const httpsServer = createHttpsServer(
+  { key: pems.private, cert: pems.cert },
+  app,
+);
 
 // One Socket.io instance serving BOTH the HTTP and HTTPS servers.
 const io = new Server(httpServer);
 io.attach(httpsServer);
 
-app.use(express.static(join(__dirname, 'public')));
+app.use(express.static(join(__dirname, "public")));
 
 // ---------------------------------------------------------------------------
 // Room management
 // ---------------------------------------------------------------------------
 const MAX_PLAYERS = 8;
-const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous chars
+const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous chars
 
 /** rooms: code -> Room */
 const rooms = new Map();
@@ -66,7 +69,7 @@ const rooms = new Map();
 function makeRoomCode() {
   let code;
   do {
-    code = '';
+    code = "";
     for (let i = 0; i < 4; i++) {
       code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
     }
@@ -81,8 +84,10 @@ function lowestFreeColorIndex(room) {
 }
 
 function sanitizeName(name) {
-  const n = String(name || '').trim().slice(0, 14);
-  return n.length ? n : 'Player';
+  const n = String(name || "")
+    .trim()
+    .slice(0, 14);
+  return n.length ? n : "Player";
 }
 
 // Clamp player-supplied physics to sane ranges so nobody can break the sim.
@@ -111,7 +116,7 @@ function playerList(room) {
 }
 
 function broadcastLobby(room) {
-  io.to(room.code).emit('room:players', {
+  io.to(room.code).emit("room:players", {
     code: room.code,
     hostId: room.hostId,
     players: playerList(room),
@@ -136,7 +141,10 @@ function removePlayerEverywhere(socket) {
 
   if (room.players.size === 0) {
     rooms.delete(code);
-    if (room.game) { room.game.stop(); room.game = null; }
+    if (room.game) {
+      room.game.stop();
+      room.game = null;
+    }
     console.log(`[room] ${code} closed (empty)`);
     return;
   }
@@ -152,12 +160,12 @@ function removePlayerEverywhere(socket) {
 // ---------------------------------------------------------------------------
 // Socket wiring
 // ---------------------------------------------------------------------------
-io.on('connection', (socket) => {
+io.on("connection", (socket) => {
   console.log(`[socket] connected: ${socket.id}`);
   socket.data.roomCode = null;
 
   // Create a new room and join it as host.
-  socket.on('room:create', ({ name, physics } = {}, cb) => {
+  socket.on("room:create", ({ name, physics } = {}, cb) => {
     // Leave any previous room first.
     removePlayerEverywhere(socket);
 
@@ -166,7 +174,7 @@ io.on('connection', (socket) => {
       code,
       hostId: socket.id,
       players: new Map(),
-      phase: 'lobby',
+      phase: "lobby",
       game: null,
       ready: new Set(),
       hasPlayed: false,
@@ -174,7 +182,12 @@ io.on('connection', (socket) => {
     };
     rooms.set(code, room);
 
-    const player = { id: socket.id, name: sanitizeName(name), colorIndex: 0, physics: sanitizePhysics(physics) };
+    const player = {
+      id: socket.id,
+      name: sanitizeName(name),
+      colorIndex: 0,
+      physics: sanitizePhysics(physics),
+    };
     room.players.set(socket.id, player);
     socket.join(code);
     socket.data.roomCode = code;
@@ -185,7 +198,7 @@ io.on('connection', (socket) => {
   });
 
   // Start a casual single-player game immediately (no lobby, survive as long as you can).
-  socket.on('solo:start', ({ name, physics } = {}, cb) => {
+  socket.on("solo:start", ({ name, physics } = {}, cb) => {
     removePlayerEverywhere(socket);
 
     const code = makeRoomCode();
@@ -193,7 +206,7 @@ io.on('connection', (socket) => {
       code,
       hostId: socket.id,
       players: new Map(),
-      phase: 'playing',
+      phase: "playing",
       game: null,
       ready: new Set(),
       hasPlayed: true,
@@ -201,7 +214,12 @@ io.on('connection', (socket) => {
     };
     rooms.set(code, room);
 
-    const player = { id: socket.id, name: sanitizeName(name), colorIndex: 0, physics: sanitizePhysics(physics) };
+    const player = {
+      id: socket.id,
+      name: sanitizeName(name),
+      colorIndex: 0,
+      physics: sanitizePhysics(physics),
+    };
     room.players.set(socket.id, player);
     socket.join(code);
     socket.data.roomCode = code;
@@ -209,27 +227,41 @@ io.on('connection', (socket) => {
     console.log(`[room] ${code} solo game started by ${player.name}`);
     cb?.({ ok: true, code, youId: socket.id });
 
-    io.to(code).emit('game:start', { players: playerList(room), solo: true });
-    room.game = new GameSim(room, io, () => {
-      room.game = null;
-      room.phase = 'lobby';
-      room.ready.clear();
-      broadcastLobby(room);
-    }, true);
+    io.to(code).emit("game:start", { players: playerList(room), solo: true });
+    room.game = new GameSim(
+      room,
+      io,
+      () => {
+        room.game = null;
+        room.phase = "lobby";
+        room.ready.clear();
+        broadcastLobby(room);
+      },
+      true,
+    );
     room.game.start();
   });
 
   // Join an existing room by code.
-  socket.on('room:join', ({ code, name, physics } = {}, cb) => {
-    code = String(code || '').toUpperCase().trim();
+  socket.on("room:join", ({ code, name, physics } = {}, cb) => {
+    code = String(code || "")
+      .toUpperCase()
+      .trim();
     const room = rooms.get(code);
-    if (!room) return cb?.({ ok: false, error: 'Room not found' });
-    if (room.phase !== 'lobby') return cb?.({ ok: false, error: 'Game already started' });
-    if (room.players.size >= MAX_PLAYERS) return cb?.({ ok: false, error: 'Room is full' });
+    if (!room) return cb?.({ ok: false, error: "Room not found" });
+    if (room.phase !== "lobby")
+      return cb?.({ ok: false, error: "Game already started" });
+    if (room.players.size >= MAX_PLAYERS)
+      return cb?.({ ok: false, error: "Room is full" });
 
     removePlayerEverywhere(socket);
 
-    const player = { id: socket.id, name: sanitizeName(name), colorIndex: lowestFreeColorIndex(room), physics: sanitizePhysics(physics) };
+    const player = {
+      id: socket.id,
+      name: sanitizeName(name),
+      colorIndex: lowestFreeColorIndex(room),
+      physics: sanitizePhysics(physics),
+    };
     room.players.set(socket.id, player);
     socket.join(code);
     socket.data.roomCode = code;
@@ -241,7 +273,7 @@ io.on('connection', (socket) => {
 
   // Update this player's control physics (from the settings panel). Applies to
   // the next game, and live to their ball if a match is already running.
-  socket.on('room:settings', ({ physics } = {}) => {
+  socket.on("room:settings", ({ physics } = {}) => {
     const room = rooms.get(socket.data.roomCode);
     if (!room) return;
     const player = room.players.get(socket.id);
@@ -251,7 +283,7 @@ io.on('connection', (socket) => {
   });
 
   // Toggle this player's "ready" state (used for replays on the results screen).
-  socket.on('room:ready', (cb) => {
+  socket.on("room:ready", (cb) => {
     const room = rooms.get(socket.data.roomCode);
     if (!room || !room.players.has(socket.id)) return cb?.({ ok: false });
     if (room.ready.has(socket.id)) room.ready.delete(socket.id);
@@ -261,50 +293,70 @@ io.on('connection', (socket) => {
   });
 
   // Leave the current room (back to menu).
-  socket.on('room:leave', (cb) => {
+  socket.on("room:leave", (cb) => {
     removePlayerEverywhere(socket);
     cb?.({ ok: true });
   });
 
   // Host starts the game.
-  socket.on('room:start', (cb) => {
+  socket.on("room:start", (cb) => {
     const room = rooms.get(socket.data.roomCode);
-    if (!room) return cb?.({ ok: false, error: 'Not in a room' });
-    if (room.hostId !== socket.id) return cb?.({ ok: false, error: 'Only the host can start' });
-    if (room.players.size < 1) return cb?.({ ok: false, error: 'Need at least 1 player' });
+    if (!room) return cb?.({ ok: false, error: "Not in a room" });
+    if (room.hostId !== socket.id)
+      return cb?.({ ok: false, error: "Only the host can start" });
+    if (room.players.size < 1)
+      return cb?.({ ok: false, error: "Need at least 1 player" });
 
     // On replays, require every non-host player to be ready first.
     if (room.hasPlayed && room.players.size > 1) {
-      const others = [...room.players.keys()].filter((id) => id !== room.hostId);
+      const others = [...room.players.keys()].filter(
+        (id) => id !== room.hostId,
+      );
       const allReady = others.every((id) => room.ready.has(id));
-      if (!allReady) return cb?.({ ok: false, error: 'Waiting for all players to ready up' });
+      if (!allReady)
+        return cb?.({
+          ok: false,
+          error: "Waiting for all players to ready up",
+        });
     }
 
     room.hasPlayed = true;
     room.ready.clear();
-    room.phase = 'playing';
-    console.log(`[room] ${room.code} game starting with ${room.players.size} players`);
+    room.phase = "playing";
+    // Single-player game: let the player survive multiple rounds.
+    const solo = room.players.size === 1;
+    console.log(
+      `[room] ${room.code} game starting with ${room.players.size} players`,
+    );
     cb?.({ ok: true });
 
     // Tell clients to switch to the game view, then start the authoritative sim.
-    io.to(room.code).emit('game:start', { players: playerList(room), solo: room.solo });
-    room.game = new GameSim(room, io, () => {
-      // Game ended — return the room to the lobby so they can play again.
-      room.game = null;
-      room.phase = 'lobby';
-      room.ready.clear();
-      broadcastLobby(room);
-    }, room.solo);
+    io.to(room.code).emit("game:start", {
+      players: playerList(room),
+      solo,
+    });
+    room.game = new GameSim(
+      room,
+      io,
+      () => {
+        // Game ended — return the room to the lobby so they can play again.
+        room.game = null;
+        room.phase = "lobby";
+        room.ready.clear();
+        broadcastLobby(room);
+      },
+      solo,
+    );
     room.game.start();
   });
 
   // Player input during gameplay (volatile, ~30Hz).
-  socket.on('input', ({ ax, ay } = {}) => {
+  socket.on("input", ({ ax, ay } = {}) => {
     const room = rooms.get(socket.data.roomCode);
     if (room && room.game) room.game.setInput(socket.id, ax, ay);
   });
 
-  socket.on('disconnect', () => {
+  socket.on("disconnect", () => {
     console.log(`[socket] disconnected: ${socket.id}`);
     removePlayerEverywhere(socket);
   });
@@ -317,19 +369,29 @@ const HTTPS_PORT = Number(process.env.HTTPS_PORT) || PORT + 1;
 httpServer.listen(PORT, () => {
   httpsServer.listen(HTTPS_PORT, () => {
     const ips = lanIPs();
-    console.log('\n  Tilt Tiles server running!\n');
+    console.log("\n  Tilt Tiles server running!\n");
     console.log(`  On this computer:   http://localhost:${PORT}`);
-    console.log('');
-    console.log('  On your PHONE (same WiFi) — use HTTPS so tilt sensors work:');
-    if (ips.length === 0) console.log('    (no LAN address found)');
+    console.log("");
+    console.log(
+      "  On your PHONE (same WiFi) — use HTTPS so tilt sensors work:",
+    );
+    if (ips.length === 0) console.log("    (no LAN address found)");
     for (const ip of ips) {
       console.log(`    https://${ip}:${HTTPS_PORT}`);
     }
-    console.log('');
-    console.log('  NOTE: phones will show a "Not secure / certificate" warning the first');
-    console.log('  time — that\'s expected for the self-signed cert. Tap Advanced ->');
-    console.log('  "Proceed / Visit anyway" once, then tilt controls will work.');
-    console.log(`  (Plain http://<ip>:${PORT} also works but phone sensors may be blocked.)`);
-    console.log('');
+    console.log("");
+    console.log(
+      '  NOTE: phones will show a "Not secure / certificate" warning the first',
+    );
+    console.log(
+      "  time — that's expected for the self-signed cert. Tap Advanced ->",
+    );
+    console.log(
+      '  "Proceed / Visit anyway" once, then tilt controls will work.',
+    );
+    console.log(
+      `  (Plain http://<ip>:${PORT} also works but phone sensors may be blocked.)`,
+    );
+    console.log("");
   });
 });
