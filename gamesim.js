@@ -3,7 +3,7 @@
 // Reuses the SAME pure logic the client uses (physics + rounds) so behavior matches.
 
 import { CONFIG } from './public/js/config.js';
-import { integrate } from './public/js/physics.js';
+import { integrate, resolveBallCollisions } from './public/js/physics.js';
 import {
   PHASE, previewDuration, ELIMINATE_DURATION, INTERMISSION_DURATION, REGROW_THRESHOLD,
   makeFullGrid, selectSafeTiles, applyPreviewFlash, eliminateUnsafe,
@@ -56,6 +56,7 @@ export class GameSim {
       this.balls.set(p.id, {
         id: p.id, name: p.name, colorIndex: p.colorIndex,
         x: pos.x, y: pos.y, vx: 0, vy: 0, alive: true,
+        phys: p.physics || undefined,
       });
       this.inputs.set(p.id, { ax: 0, ay: 0 });
     });
@@ -70,16 +71,32 @@ export class GameSim {
     if (i) { i.ax = clamp(+ax || 0); i.ay = clamp(+ay || 0); }
   }
 
+  // Live-update a player's control physics.
+  setPhysics(id, phys) {
+    const b = this.balls.get(id);
+    if (b) b.phys = phys;
+  }
+
   // A player disconnected/left mid-game.
   removePlayer(id) {
     const b = this.balls.get(id);
     if (b && b.alive) {
       b.alive = false;
-      this.placements.push(id);
+      this._record(b);
     }
     this.inputs.delete(id);
     this.balls.delete(id);
     this._checkWin();
+  }
+
+  // Record a knocked-out player into the standings (earliest-out pushed first).
+  _record(ball) {
+    this.placements.push({
+      id: ball.id,
+      name: ball.name,
+      colorIndex: ball.colorIndex,
+      roundOut: this.round,
+    });
   }
 
   _beginPreview() {
@@ -109,8 +126,10 @@ export class GameSim {
     if (this.phase === PHASE.PREVIEW || this.phase === PHASE.INTERMISSION) {
       for (const b of this.balls.values()) {
         if (!b.alive) continue;
-        integrate(b, this.inputs.get(b.id) || { ax: 0, ay: 0 }, dt);
+        integrate(b, this.inputs.get(b.id) || { ax: 0, ay: 0 }, dt, b.phys);
       }
+      // Ball-to-ball collisions (server-authoritative).
+      resolveBallCollisions([...this.balls.values()]);
     }
 
     this.timer -= dt;
@@ -128,7 +147,7 @@ export class GameSim {
         for (const b of this.balls.values()) {
           if (b.alive && !ballOnAliveTile(b, this.tiles)) {
             b.alive = false;
-            this.placements.push(b.id);
+            this._record(b);
             justOut.push(b.id);
           }
         }
@@ -156,7 +175,19 @@ export class GameSim {
     if (alive.length > 1) return false;
 
     const winner = alive[0] || null;
-    if (winner) this.placements.push(winner.id);
+    if (winner) {
+      winner.alive = false; // finalize
+      this._record(winner);
+    }
+
+    // Standings: winner first (last recorded), earliest-out last.
+    const standings = [...this.placements].reverse().map((p, idx) => ({
+      rank: idx + 1,
+      id: p.id,
+      name: p.name,
+      colorIndex: p.colorIndex,
+      roundOut: p.roundOut,
+    }));
 
     this.phase = PHASE.GAMEOVER;
     this._broadcast();
@@ -164,8 +195,7 @@ export class GameSim {
       winnerId: winner ? winner.id : null,
       winnerName: winner ? winner.name : null,
       rounds: this.round,
-      // Final standings, winner first.
-      placements: [...this.placements].reverse(),
+      standings,
     });
     this.stop();
     this.onEnd?.();

@@ -9,10 +9,10 @@ export class Renderer {
     this.ctx = canvas.getContext('2d');
     this.dpr = Math.max(1, window.devicePixelRatio || 1);
 
-    // Layout, computed in resize(): tile size in px + grid origin (top-left) in px.
     this.tile = 0;
     this.originX = 0;
     this.originY = 0;
+    this.now = 0; // ms, set each frame for animations
 
     this._resize = this.resize.bind(this);
     window.addEventListener('resize', this._resize);
@@ -23,13 +23,13 @@ export class Renderer {
   resize() {
     const w = window.innerWidth;
     const h = window.innerHeight;
+    this.dpr = Math.max(1, window.devicePixelRatio || 1);
     this.canvas.width = Math.floor(w * this.dpr);
     this.canvas.height = Math.floor(h * this.dpr);
     this.canvas.style.width = w + 'px';
     this.canvas.style.height = h + 'px';
 
-    // Fit GRID_COLS x GRID_ROWS into the screen with a little padding.
-    const pad = 0.06; // 6% margin around the board
+    const pad = 0.06;
     const availW = w * (1 - pad * 2);
     const availH = h * (1 - pad * 2);
     this.tile = Math.min(availW / CONFIG.GRID_COLS, availH / CONFIG.GRID_ROWS);
@@ -40,7 +40,6 @@ export class Renderer {
     this.originY = (h - boardH) / 2;
   }
 
-  // Convert world (tile-unit) coords to screen pixels.
   worldToScreen(wx, wy) {
     return {
       x: (this.originX + wx * this.tile) * this.dpr,
@@ -54,47 +53,67 @@ export class Renderer {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // tiles: 2D array [row][col] of tile objects, or null for missing tiles.
-  // Each tile: { alive: bool, flash: 'safe'|'unsafe'|null }
+  // tiles[r][c]: { alive, flash, a }  where `a` is an animation scale 0..1 (optional).
   drawTiles(tiles) {
     const { ctx } = this;
-    const gap = this.tile * CONFIG.TILE_GAP;
-    const size = this.tile - gap;
-    const radius = size * 0.16;
+    const gapPx = this.tile * CONFIG.TILE_GAP;
+    const fullSize = this.tile - gapPx;
+    const baseRadius = fullSize * 0.16;
+    const pulse = 0.5 + 0.5 * Math.sin(this.now / 130); // 0..1 for flash pulsing
 
     for (let r = 0; r < CONFIG.GRID_ROWS; r++) {
       for (let c = 0; c < CONFIG.GRID_COLS; c++) {
         const t = tiles?.[r]?.[c];
-        if (!t || !t.alive) continue;
+        if (!t) continue;
+        const a = t.a != null ? t.a : (t.alive ? 1 : 0);
+        if (a <= 0.02) continue;
 
-        const p = this.worldToScreen(c + gap / this.tile / 2, r + gap / this.tile / 2);
-        const px = p.x;
-        const py = p.y;
-        const s = size * this.dpr;
+        // Center of the tile in screen space.
+        const center = this.worldToScreen(c + 0.5, r + 0.5);
+        const s = fullSize * a * this.dpr;
+        const px = center.x - s / 2;
+        const py = center.y - s / 2;
+        const radius = baseRadius * a * this.dpr;
 
         let fill = CONFIG.COLORS.tile;
-        if (t.flash === 'safe') fill = CONFIG.COLORS.safe;
-        else if (t.flash === 'unsafe') fill = CONFIG.COLORS.unsafe;
+        if (t.alive && t.flash === 'safe') fill = mix(CONFIG.COLORS.safe, '#1f7a45', pulse);
+        else if (t.alive && t.flash === 'unsafe') fill = mix(CONFIG.COLORS.unsafe, '#8f2230', pulse);
+        else if (!t.alive) fill = '#23254a'; // dying tile, dimmer
 
-        this._roundRect(px, py, s, s, radius * this.dpr);
+        ctx.globalAlpha = Math.min(1, a);
+        this._roundRect(px, py, s, s, radius);
         ctx.fillStyle = fill;
         ctx.fill();
-
-        // subtle top edge highlight for depth
         ctx.strokeStyle = CONFIG.COLORS.tileEdge;
         ctx.lineWidth = 1.5 * this.dpr;
         ctx.stroke();
+        ctx.globalAlpha = 1;
       }
     }
   }
 
-  // balls: array of { x, y, color, label, self, alive }  (x,y in tile units)
+  // balls: array of { x, y, color, label, self, alive, trail }
   drawBalls(balls) {
     const { ctx } = this;
     const radius = CONFIG.BALL_RADIUS * this.tile * this.dpr;
 
     for (const b of balls) {
       if (b.alive === false) continue;
+
+      // Trail
+      if (b.trail && b.trail.length) {
+        for (let i = 0; i < b.trail.length; i++) {
+          const tp = this.worldToScreen(b.trail[i].x, b.trail[i].y);
+          const f = (i + 1) / b.trail.length;
+          ctx.globalAlpha = f * 0.25;
+          ctx.beginPath();
+          ctx.arc(tp.x, tp.y, radius * (0.4 + f * 0.5), 0, Math.PI * 2);
+          ctx.fillStyle = b.color;
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+
       const p = this.worldToScreen(b.x, b.y);
 
       // shadow
@@ -125,7 +144,9 @@ export class Renderer {
         ctx.font = `${Math.round(13 * this.dpr)}px -apple-system, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'bottom';
-        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillText(b.label, p.x + this.dpr, p.y - radius - 4 * this.dpr + this.dpr);
+        ctx.fillStyle = b.self ? '#ffd166' : 'rgba(255,255,255,0.92)';
         ctx.fillText(b.label, p.x, p.y - radius - 4 * this.dpr);
       }
     }
@@ -133,6 +154,7 @@ export class Renderer {
 
   _roundRect(x, y, w, h, r) {
     const ctx = this.ctx;
+    r = Math.min(r, w / 2, h / 2);
     ctx.beginPath();
     ctx.moveTo(x + r, y);
     ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -141,4 +163,17 @@ export class Renderer {
     ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
   }
+}
+
+// Linear blend between two hex colors, t in 0..1.
+function mix(hexA, hexB, t) {
+  const a = hexToRgb(hexA), b = hexToRgb(hexB);
+  const r = Math.round(a.r + (b.r - a.r) * t);
+  const g = Math.round(a.g + (b.g - a.g) * t);
+  const bl = Math.round(a.b + (b.b - a.b) * t);
+  return `rgb(${r},${g},${bl})`;
+}
+function hexToRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }

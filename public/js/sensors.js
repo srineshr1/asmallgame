@@ -20,7 +20,8 @@ export class InputController {
     this._keys = { up: false, down: false, left: false, right: false };
 
     // Tuning
-    this.maxTilt = 35;             // degrees of tilt that maps to full input
+    this.maxTilt = 43;            // degrees of tilt that maps to full input
+    this.deadZone = 0;             // degrees near neutral that map to zero
 
     this._onOrient = this._onOrient.bind(this);
     this._attachKeyboard();
@@ -34,6 +35,24 @@ export class InputController {
 
   static sensorsSupported() {
     return typeof DeviceOrientationEvent !== 'undefined';
+  }
+
+  // True once real orientation events have started arriving.
+  get hasSensorData() {
+    return this.mode === 'sensor' && this._haveSensorData;
+  }
+
+  // Snapshot of raw + normalized values for the tuning readout.
+  debug() {
+    const { ax, ay } = this.get();
+    return {
+      mode: this.mode,
+      beta: this._beta,
+      gamma: this._gamma,
+      ax,
+      ay,
+      maxTilt: this.maxTilt,
+    };
   }
 
   // Must be called from a user gesture (e.g., button click) for iOS.
@@ -108,8 +127,8 @@ export class InputController {
     if (this.mode === 'sensor' && this._haveSensorData && this._calBeta !== null) {
       const dGamma = this._gamma - this._calGamma; // left-right
       const dBeta = this._beta - this._calBeta;     // front-back
-      const ax = clamp(dGamma / this.maxTilt, -1, 1);
-      const ay = clamp(dBeta / this.maxTilt, -1, 1);
+      const ax = clamp(applyDeadZone(dGamma, this.deadZone) / this.maxTilt, -1, 1);
+      const ay = clamp(applyDeadZone(dBeta, this.deadZone) / this.maxTilt, -1, 1);
       return { ax, ay };
     }
     // Keyboard
@@ -124,4 +143,12 @@ export class InputController {
 
 function clamp(v, lo, hi) {
   return v < lo ? lo : v > hi ? hi : v;
+}
+
+// Zero out small tilts near neutral, then rescale so motion stays smooth past the zone.
+function applyDeadZone(deg, zone) {
+  if (zone <= 0) return deg;
+  const mag = Math.abs(deg);
+  if (mag <= zone) return 0;
+  return Math.sign(deg) * (mag - zone);
 }

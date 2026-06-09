@@ -13,18 +13,23 @@ export class NetClient {
   }
 
   // --- Promise-based room actions ---
-  createRoom(name) {
-    return this._emit('room:create', { name }).then((res) => {
+  createRoom(name, physics) {
+    return this._emit('room:create', { name, physics }).then((res) => {
       if (res.ok) { this.code = res.code; this.youId = res.youId; }
       return res;
     });
   }
 
-  joinRoom(code, name) {
-    return this._emit('room:join', { code, name }).then((res) => {
+  joinRoom(code, name, physics) {
+    return this._emit('room:join', { code, name, physics }).then((res) => {
       if (res.ok) { this.code = res.code; this.youId = res.youId; }
       return res;
     });
+  }
+
+  // Update control physics (fire-and-forget).
+  sendSettings(physics) {
+    this.socket.emit('room:settings', { physics });
   }
 
   leaveRoom() {
@@ -52,7 +57,14 @@ export class NetClient {
 
   _emit(event, payload) {
     return new Promise((resolve) => {
-      this.socket.emit(event, payload, (res) => resolve(res || { ok: true }));
+      let done = false;
+      const finish = (res) => { if (!done) { done = true; resolve(res); } };
+      // Fail open after 4s so the UI never hangs on a dropped connection.
+      const timer = setTimeout(() => finish({ ok: false, error: 'No response (connection lost?)' }), 4000);
+      this.socket.emit(event, payload, (res) => {
+        clearTimeout(timer);
+        finish(res || { ok: true });
+      });
     });
   }
 }
