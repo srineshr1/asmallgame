@@ -1,0 +1,201 @@
+/* style.css — Tilt Tiles */
+
+:root {
+  --bg: #0f1020;
+  --bg2: #1a1b35;
+  --accent: #5b8cff;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #fff;
+  touch-action: none;
+}
+
+#game {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Screens (overlays) */
+.screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  background: radial-gradient(circle at 50% 35%, rgba(91,140,255,0.15), transparent 60%), rgba(15,16,32,0.92);
+  backdrop-filter: blur(2px);
+  padding: 24px;
+}
+.screen.hidden { display: none; }
+
+.panel {
+  text-align: center;
+  max-width: 360px;
+  width: 100%;
+}
+
+.panel h1 {
+  font-size: 2.6rem;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, #5b8cff, #ff6b9d);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.panel .sub {
+  font-size: 1rem;
+  line-height: 1.5;
+  opacity: 0.85;
+  margin-bottom: 28px;
+}
+
+.g { color: var(--accent); color: #37d67a; font-weight: 600; }
+.r { color: #e84a5f; font-weight: 600; }
+
+.btn {
+  pointer-events: auto;
+  display: inline-block;
+  border: none;
+  border-radius: 14px;
+  padding: 16px 28px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #5b8cff, #7b5bff);
+  box-shadow: 0 8px 24px rgba(91,140,255,0.4);
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.2s ease;
+}
+.btn:active { transform: scale(0.96); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.btn.secondary { background: linear-gradient(135deg, #3d4170, #5b8cff); box-shadow: none; }
+.btn.ghost { background: transparent; box-shadow: none; font-size: 0.9rem; padding: 10px 18px; opacity: 0.7; }
+.btn + .btn { margin-top: 10px; }
+
+/* Form fields */
+.field {
+  width: 100%;
+  display: block;
+  margin: 0 auto 14px;
+  padding: 14px 16px;
+  border: 2px solid #3d4170;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  font-size: 1.05rem;
+  text-align: center;
+  outline: none;
+}
+.field:focus { border-color: var(--accent); }
+.field::placeholder { color: rgba(255,255,255,0.4); }
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+  opacity: 0.5;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.3);
+}
+
+.join-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+.join-row .field { margin-bottom: 0; flex: 1; }
+.join-row .field.code {
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  font-weight: 700;
+}
+.join-row .btn { margin-top: 0; }
+
+/* Lobby */
+.roomcode {
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: 8px;
+  margin: 4px 0 8px;
+  color: #fff;
+  text-shadow: 0 2px 20px rgba(91,140,255,0.6);
+}
+.players {
+  list-style: none;
+  margin: 18px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.players li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 10px;
+  font-weight: 600;
+}
+.players .dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex: none;
+}
+.players .host-tag {
+  margin-left: auto;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.7;
+}
+
+/* HUD shown during play */
+#hud {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+#hud .status { opacity: 0.9; }
+#hud.hidden { display: none; }

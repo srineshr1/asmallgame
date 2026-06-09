@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1020" />
+  <title>Tilt Tiles</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Game canvas (visible during play) -->
+  <canvas id="game"></canvas>
+
+  <!-- Overlay UI -->
+  <div id="ui">
+    <!-- In-game HUD -->
+    <div id="hud" class="hidden">
+      <span class="status" id="hud-left">Round 1</span>
+      <span class="status" id="hud-right"></span>
+    </div>
+
+    <!-- Menu: name + create/join a room -->
+    <div id="menu-screen" class="screen">
+      <div class="panel">
+        <h1>Tilt Tiles</h1>
+        <p class="sub">Tilt your phone to roll your ball.<br />Reach a <span class="g">green</span> tile before the <span class="r">red</span> ones vanish!</p>
+        <input id="name-input" class="field" type="text" maxlength="14" placeholder="Your name" autocomplete="off" />
+        <button id="create-btn" class="btn">Create Game</button>
+        <div class="divider"><span>or join</span></div>
+        <div class="join-row">
+          <input id="code-input" class="field code" type="text" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" />
+          <button id="join-btn" class="btn secondary">Join</button>
+        </div>
+        <p class="hint" id="menu-hint">On desktop, use the arrow keys or WASD.</p>
+      </div>
+    </div>
+
+    <!-- Lobby: room code + connected players + start -->
+    <div id="lobby-screen" class="screen hidden">
+      <div class="panel">
+        <p class="sub">Room code</p>
+        <div id="room-code" class="roomcode">----</div>
+        <p class="hint">Others join from <b>the same WiFi</b> using this code.</p>
+        <ul id="player-list" class="players"></ul>
+        <button id="start-btn" class="btn hidden">Start Game</button>
+        <p id="lobby-wait" class="hint">Waiting for the host to start…</p>
+        <button id="leave-btn" class="btn ghost">Leave</button>
+      </div>
+    </div>
+
+    <!-- Results / game over screen -->
+    <div id="over-screen" class="screen hidden">
+      <div class="panel">
+        <h1 id="over-title">Eliminated!</h1>
+        <p class="sub" id="over-sub">You survived 0 rounds.</p>
+        <button id="retry-btn" class="btn">Back to Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

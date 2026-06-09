@@ -1,0 +1,14 @@
+{
+  "name": "tilt-tiles",
+  "version": "1.0.0",
+  "description": "Sensor-based multiplayer tile survival game. Tilt your phone to roll a ball onto safe tiles before the unsafe ones disappear.",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}
