@@ -11,15 +11,23 @@ export const CONFIG = {
   // Ball radius as a fraction of a tile's size.
   BALL_RADIUS: 0.32,
 
-  // Colors
+  // Colors — matched to the UI design system
   COLORS: {
-    bg: '#0f1020',
-    tile: '#2e3157',
-    tileEdge: '#3d4170',
-    safe: '#37d67a',     // green flash (preview)
-    unsafe: '#e84a5f',   // red flash (preview)
-    self: '#ffd166',     // local player's ball
-    others: ['#5b8cff', '#ff6b9d', '#9b5bff', '#4ad9d9', '#ff9f43', '#a0e85b', '#ff5b5b'],
+    bg: "#080812", // cosmos — deepest background
+    tile: "#2a2d4a", // alive tile body
+    tileEdge: "#3d4170", // tile border
+    safe: "#34d399", // aurora — green flash (preview)
+    unsafe: "#ff5e5b", // flare — red flash (preview)
+    self: "#f59e0b", // solar — local player's ball (amber)
+    others: [
+      "#818cf8", // glacier
+      "#ff5e5b", // flare
+      "#34d399", // aurora
+      "#a78bfa", // violet
+      "#f59e0b", // solar
+      "#fb7185", // rose
+      "#38bdf8", // sky
+    ],
   },
 };
 

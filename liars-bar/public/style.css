@@ -1,0 +1,57 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+#app { width: 100%; max-width: 900px; padding: 20px; }
+.screen { display: none; flex-direction: column; align-items: center; gap: 16px; }
+.screen.active { display: flex; }
+.hidden { display: none !important; }
+
+h1 { font-size: 2.5em; color: #e94560; }
+h2 { color: #e94560; }
+.subtitle { color: #888; font-style: italic; }
+.hint { color: #666; font-size: 0.9em; }
+.error { color: #ff4444; min-height: 1.2em; }
+
+input { padding: 10px 14px; border-radius: 8px; border: 1px solid #333; background: #16213e; color: #eee; font-size: 1em; width: 200px; text-align: center; }
+input:focus { outline: none; border-color: #e94560; }
+
+button { padding: 10px 24px; border-radius: 8px; border: none; background: #e94560; color: #fff; font-size: 1em; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+button:hover { background: #c0392b; }
+button:disabled { background: #444; cursor: not-allowed; }
+
+.btn-row { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.join-row { display: flex; gap: 8px; }
+.join-row input { width: 80px; text-transform: uppercase; }
+
+#room-code { color: #f6c90e; font-size: 1.5em; letter-spacing: 4px; }
+#player-list { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+#player-list .player-tag { background: #16213e; padding: 8px 16px; border-radius: 20px; border: 1px solid #333; }
+
+/* Game screen */
+#game-header { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 10px; background: #16213e; border-radius: 10px; gap: 10px; flex-wrap: wrap; }
+#table-type-display { font-size: 1.3em; font-weight: bold; }
+#pile-info { color: #aaa; }
+#turn-info { color: #f6c90e; font-weight: bold; }
+
+#opponents { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; width: 100%; margin: 10px 0; }
+.opponent { background: #16213e; border-radius: 10px; padding: 10px 16px; text-align: center; border: 2px solid #333; min-width: 120px; }
+.opponent.dead { opacity: 0.4; border-color: #600; }
+.opponent.active-turn { border-color: #f6c90e; }
+
+#my-hand { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; padding: 10px; }
+.card { width: 80px; height: 116px; border-radius: 6px; cursor: pointer; border: 3px solid transparent; transition: transform 0.15s, border-color 0.15s; }
+.card:hover { transform: translateY(-8px); }
+.card.selected { border-color: #e94560; transform: translateY(-12px); }
+.card img { width: 100%; height: 100%; border-radius: 4px; object-fit: contain; }
+
+#actions { display: flex; gap: 12px; }
+#my-status { color: #888; font-size: 0.9em; margin-top: 6px; }
+
+#result-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 100; }
+#result-content { background: #16213e; border-radius: 16px; padding: 30px; text-align: center; max-width: 400px; }
+#result-content h3 { color: #e94560; margin-bottom: 12px; font-size: 1.4em; }
+#result-content .revealed-cards { display: flex; gap: 8px; justify-content: center; margin: 12px 0; }
+#result-content .revealed-cards img { width: 60px; border-radius: 4px; }
+#result-content .shot-result { font-size: 1.8em; margin-top: 10px; }
+
+#screen-gameover { gap: 20px; }
+#winner-text { font-size: 2em; }

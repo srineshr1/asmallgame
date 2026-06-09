@@ -1,12 +1,12 @@
 // render.js — Canvas rendering for Tilt Tiles
 // Resolution-independent: the grid lives in "tile units" and is scaled to fit the canvas.
 
-import { CONFIG } from './config.js';
+import { CONFIG } from "./config.js";
 
 export class Renderer {
   constructor(canvas) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
+    this.ctx = canvas.getContext("2d");
     this.dpr = Math.max(1, window.devicePixelRatio || 1);
 
     this.tile = 0;
@@ -15,8 +15,8 @@ export class Renderer {
     this.now = 0; // ms, set each frame for animations
 
     this._resize = this.resize.bind(this);
-    window.addEventListener('resize', this._resize);
-    window.addEventListener('orientationchange', this._resize);
+    window.addEventListener("resize", this._resize);
+    window.addEventListener("orientationchange", this._resize);
     this.resize();
   }
 
@@ -26,8 +26,8 @@ export class Renderer {
     this.dpr = Math.max(1, window.devicePixelRatio || 1);
     this.canvas.width = Math.floor(w * this.dpr);
     this.canvas.height = Math.floor(h * this.dpr);
-    this.canvas.style.width = w + 'px';
-    this.canvas.style.height = h + 'px';
+    this.canvas.style.width = w + "px";
+    this.canvas.style.height = h + "px";
 
     const pad = 0.06;
     const availW = w * (1 - pad * 2);
@@ -65,7 +65,7 @@ export class Renderer {
       for (let c = 0; c < CONFIG.GRID_COLS; c++) {
         const t = tiles?.[r]?.[c];
         if (!t) continue;
-        const a = t.a != null ? t.a : (t.alive ? 1 : 0);
+        const a = t.a != null ? t.a : t.alive ? 1 : 0;
         if (a <= 0.02) continue;
 
         // Center of the tile in screen space.
@@ -76,9 +76,11 @@ export class Renderer {
         const radius = baseRadius * a * this.dpr;
 
         let fill = CONFIG.COLORS.tile;
-        if (t.alive && t.flash === 'safe') fill = mix(CONFIG.COLORS.safe, '#1f7a45', pulse);
-        else if (t.alive && t.flash === 'unsafe') fill = mix(CONFIG.COLORS.unsafe, '#8f2230', pulse);
-        else if (!t.alive) fill = '#23254a'; // dying tile, dimmer
+        if (t.alive && t.flash === "safe")
+          fill = mix(CONFIG.COLORS.safe, "#1a6b42", pulse);
+        else if (t.alive && t.flash === "unsafe")
+          fill = mix(CONFIG.COLORS.unsafe, "#8a1e2a", pulse);
+        else if (!t.alive) fill = "#1e1d38"; // dying tile, nebula-2
 
         ctx.globalAlpha = Math.min(1, a);
         this._roundRect(px, py, s, s, radius);
@@ -119,7 +121,7 @@ export class Renderer {
       // shadow
       ctx.beginPath();
       ctx.arc(p.x, p.y + radius * 0.25, radius, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.fillStyle = "rgba(0,0,0,0.25)";
       ctx.fill();
 
       // ball
@@ -128,25 +130,35 @@ export class Renderer {
       ctx.fillStyle = b.color;
       ctx.fill();
       if (b.self) {
-        ctx.strokeStyle = '#fff';
+        ctx.strokeStyle = "#fff";
         ctx.lineWidth = 3 * this.dpr;
         ctx.stroke();
       }
 
       // glossy highlight
       ctx.beginPath();
-      ctx.arc(p.x - radius * 0.3, p.y - radius * 0.3, radius * 0.35, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.arc(
+        p.x - radius * 0.3,
+        p.y - radius * 0.3,
+        radius * 0.35,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
       ctx.fill();
 
       // name label
       if (b.label) {
         ctx.font = `${Math.round(13 * this.dpr)}px -apple-system, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.fillText(b.label, p.x + this.dpr, p.y - radius - 4 * this.dpr + this.dpr);
-        ctx.fillStyle = b.self ? '#ffd166' : 'rgba(255,255,255,0.92)';
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.fillText(
+          b.label,
+          p.x + this.dpr,
+          p.y - radius - 4 * this.dpr + this.dpr,
+        );
+        ctx.fillStyle = b.self ? "#ffd166" : "rgba(255,255,255,0.92)";
         ctx.fillText(b.label, p.x, p.y - radius - 4 * this.dpr);
       }
     }
@@ -167,7 +179,8 @@ export class Renderer {
 
 // Linear blend between two hex colors, t in 0..1.
 function mix(hexA, hexB, t) {
-  const a = hexToRgb(hexA), b = hexToRgb(hexB);
+  const a = hexToRgb(hexA),
+    b = hexToRgb(hexB);
   const r = Math.round(a.r + (b.r - a.r) * t);
   const g = Math.round(a.g + (b.g - a.g) * t);
   const bl = Math.round(a.b + (b.b - a.b) * t);

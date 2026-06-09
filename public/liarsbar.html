@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#080812" />
+<title>Liar's Bar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --cosmos:#080812; --nebula:#15142a; --nebula-2:#1e1d38;
+  --border:rgba(255,255,255,.07); --border-strong:rgba(255,255,255,.14);
+  --stardust:#eeeaf4; --dust:#a09db5; --void:#787490; --mute:#4a4760;
+  --flare:#ff5e5b; --flare-h:#ff7b78; --aurora:#34d399;
+  --gold:#c9a44b; --gold-h:#dbb860; --gold-dim:#8a7040;
+  --felt:#0e2a22;
+  --r:20px;
+  --font-display:"Outfit",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;min-height:100%;}
+body{
+  font-family:var(--font-body);color:var(--stardust);
+  background:
+    radial-gradient(1200px 700px at 50% -10%, #1a1838 0%, transparent 60%),
+    radial-gradient(900px 600px at 50% 120%, rgba(201,164,75,.06) 0%, transparent 55%),
+    var(--cosmos);
+  min-height:100vh;display:flex;justify-content:center;align-items:center;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:hidden;
+}
+
+/* back link */
+.back-link{
+  position:fixed;top:14px;left:14px;z-index:60;display:inline-flex;align-items:center;gap:6px;
+  padding:8px 14px;border-radius:999px;background:rgba(8,8,18,.55);
+  border:1px solid var(--border);backdrop-filter:blur(8px);
+  font-family:var(--font-body);font-size:.8125rem;font-weight:600;color:var(--dust);
+  text-decoration:none;transition:color .15s,border-color .15s,background .15s;
+}
+.back-link:hover{color:#fff;border-color:var(--border-strong);background:rgba(8,8,18,.8);}
+
+#app{width:100%;max-width:1000px;padding:24px;display:flex;justify-content:center;}
+
+/* screens */
+.screen{display:none;flex-direction:column;align-items:center;gap:20px;width:100%;animation:fade .4s ease;}
+.screen.active{display:flex;}
+.hidden{display:none !important;}
+@keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+/* ── Panel (lobby / waiting / gameover) ── */
+.panel{
+  width:100%;max-width:420px;background:linear-gradient(180deg,var(--nebula) 0%,#121127 100%);
+  border:1px solid var(--border);border-radius:var(--r);
+  padding:40px 32px 32px;display:flex;flex-direction:column;align-items:center;gap:16px;
+  box-shadow:0 30px 80px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04);
+}
+.emblem{
+  width:84px;height:84px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 35%,rgba(201,164,75,.22),rgba(201,164,75,.05));
+  border:2px solid rgba(201,164,75,.4);box-shadow:0 0 40px rgba(201,164,75,.18);
+}
+.emblem span{font-size:2.6rem;line-height:1;color:var(--gold);filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));}
+.kicker{font-family:var(--font-display);font-size:.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:.18em;color:var(--gold-dim);}
+.title{font-family:var(--font-display);font-size:2.2rem;font-weight:800;letter-spacing:-.02em;line-height:1;}
+.tagline{font-size:.9rem;color:var(--void);text-align:center;line-height:1.5;max-width:280px;}
+
+/* inputs */
+.field{
+  width:100%;padding:14px 16px;border-radius:12px;border:1px solid var(--border-strong);
+  background:rgba(8,8,18,.6);color:var(--stardust);font-size:1rem;font-family:var(--font-body);
+  text-align:center;transition:border-color .15s,box-shadow .15s;
+}
+.field::placeholder{color:var(--mute);}
+.field:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,164,75,.15);}
+
+/* buttons */
+.btn{
+  font-family:var(--font-display);font-weight:700;font-size:.95rem;letter-spacing:.01em;
+  border:none;border-radius:12px;padding:14px 22px;cursor:pointer;
+  transition:transform .12s,box-shadow .2s,background .2s,opacity .2s;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn:active{transform:scale(.97);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-gold{background:linear-gradient(180deg,var(--gold-h),var(--gold));color:#241c08;box-shadow:0 8px 24px rgba(201,164,75,.28);}
+.btn-gold:not(:disabled):hover{box-shadow:0 10px 30px rgba(201,164,75,.4);}
+.btn-danger{background:linear-gradient(180deg,var(--flare-h),var(--flare));color:#2a0b0b;box-shadow:0 8px 24px rgba(255,94,91,.28);}
+.btn-danger:not(:disabled):hover{box-shadow:0 10px 30px rgba(255,94,91,.42);}
+.btn-ghost{background:rgba(255,255,255,.05);color:var(--dust);border:1px solid var(--border-strong);}
+.btn-ghost:hover{color:#fff;border-color:var(--border-strong);background:rgba(255,255,255,.09);}
+.btn-wide{width:100%;}
+.link-btn{background:none;border:none;color:var(--void);font-size:.82rem;cursor:pointer;font-family:var(--font-body);transition:color .15s;}
+.link-btn:hover{color:var(--dust);}
+
+.btn-row{display:flex;flex-direction:column;gap:10px;width:100%;}
+.divider{display:flex;align-items:center;gap:12px;width:100%;color:var(--mute);font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;font-family:var(--font-display);font-weight:600;}
+.divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--border);}
+.join-row{display:flex;gap:10px;width:100%;}
+.join-row .field{flex:1;}
+.join-row .code{max-width:120px;text-transform:uppercase;letter-spacing:.3em;font-weight:700;font-family:var(--font-display);}
+.error{color:var(--flare);font-size:.85rem;min-height:1.2em;text-align:center;}
+
+/* ── Waiting room ── */
+.section-label{font-family:var(--font-display);font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--void);}
+.roomcode{
+  font-family:var(--font-display);font-size:2.6rem;font-weight:800;letter-spacing:.32em;
+  color:var(--gold);text-shadow:0 0 30px rgba(201,164,75,.35);padding-left:.32em;
+}
+.seat-list{display:flex;flex-direction:column;gap:8px;width:100%;}
+.seat{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;
+  background:rgba(8,8,18,.45);border:1px solid var(--border);
+}
+.seat .avatar{
+  width:34px;height:34px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-weight:700;font-size:.95rem;color:#241c08;
+  background:linear-gradient(180deg,var(--gold-h),var(--gold-dim));
+}
+.seat .seat-name{font-weight:600;font-size:.95rem;}
+.seat .seat-tag{margin-left:auto;font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);font-weight:700;font-family:var(--font-display);}
+
+/* ── Game screen ── */
+#screen-game{max-width:920px;gap:16px;}
+.topbar{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:14px 18px;border-radius:16px;
+  background:linear-gradient(180deg,rgba(30,29,56,.9),rgba(18,17,39,.9));
+  border:1px solid var(--border);box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+.table-card-wrap{display:flex;align-items:center;gap:14px;}
+.mini-card{
+  position:relative;width:46px;height:64px;border-radius:8px;flex-shrink:0;
+  background:linear-gradient(160deg,#fff,#e9e6ef);box-shadow:0 6px 16px rgba(0,0,0,.5);
+  display:flex;align-items:center;justify-content:center;
+}
+.mini-card .mc-rank{font-family:var(--font-display);font-weight:800;font-size:1.5rem;color:#161427;}
+.mini-card .mc-suit{position:absolute;bottom:5px;right:7px;font-size:.8rem;}
+.mini-card.red .mc-rank,.mini-card.red .mc-suit{color:#c01d2e;}
+.table-meta{display:flex;flex-direction:column;gap:1px;}
+.table-meta .table-kicker{font-family:var(--font-display);font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.16em;color:var(--void);}
+.table-meta strong{font-family:var(--font-display);font-size:1.2rem;font-weight:800;letter-spacing:.02em;}
+.table-meta .table-hint{font-size:.72rem;color:var(--gold-dim);}
+.turn-pill{
+  display:flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;
+  font-family:var(--font-display);font-weight:700;font-size:.85rem;
+  background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--dust);
+}
+.turn-pill.mine{background:linear-gradient(180deg,rgba(201,164,75,.25),rgba(201,164,75,.1));border-color:rgba(201,164,75,.5);color:var(--gold-h);box-shadow:0 0 24px rgba(201,164,75,.2);}
+.turn-pill .dot{width:8px;height:8px;border-radius:50%;background:currentColor;}
+.turn-pill.mine .dot{animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* opponents */
+.opponents{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;width:100%;}
+.opp{
+  min-width:128px;padding:14px 16px;border-radius:16px;text-align:center;
+  background:linear-gradient(180deg,var(--nebula),#121127);
+  border:1px solid var(--border);transition:border-color .25s,box-shadow .25s,transform .2s,opacity .25s;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+}
+.opp.active{border-color:rgba(201,164,75,.55);box-shadow:0 0 28px rgba(201,164,75,.2);transform:translateY(-3px);}
+.opp.dead{opacity:.45;filter:grayscale(.6);border-color:rgba(255,94,91,.2);}
+.opp .opp-top{display:flex;align-items:center;gap:8px;}
+.opp .avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:.8rem;color:#241c08;background:linear-gradient(180deg,var(--gold-h),var(--gold-dim));}
+.opp .opp-name{font-family:var(--font-display);font-weight:700;font-size:.95rem;}
+.opp .cardcount{display:inline-flex;align-items:center;gap:5px;font-size:.8rem;color:var(--dust);}
+.opp .cardcount .mini-back{width:13px;height:18px;border-radius:3px;background:linear-gradient(160deg,#3b3a66,#23224a);border:1px solid rgba(255,255,255,.12);display:inline-block;}
+.opp.dead .opp-name::after{content:" 💀";}
+
+/* revolver chambers */
+.chambers{display:inline-flex;gap:4px;align-items:center;}
+.chamber{width:11px;height:11px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff8a87,var(--flare));box-shadow:0 0 6px rgba(255,94,91,.5),inset 0 1px 1px rgba(255,255,255,.4);}
+.chamber.spent{background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);}
+
+/* table center / pile */
+.table-center{
+  width:100%;min-height:150px;border-radius:24px;position:relative;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;
+  background:
+    radial-gradient(420px 200px at 50% 45%, rgba(52,211,153,.06), transparent 70%),
+    radial-gradient(circle at 50% 50%, rgba(14,42,34,.5), rgba(8,8,18,.2));
+  border:1px solid var(--border);box-shadow:inset 0 0 60px rgba(0,0,0,.4);
+}
+.pile{position:relative;height:84px;display:flex;align-items:center;justify-content:center;}
+.pile-card{position:absolute;width:58px;height:82px;border-radius:7px;box-shadow:0 8px 18px rgba(0,0,0,.5);transform:translate(calc(var(--i) * 7px - 14px),calc(var(--i) * -2px)) rotate(calc(var(--i) * 3deg - 6deg));}
+.pile-count{
+  position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  background:var(--gold);color:#241c08;font-family:var(--font-display);font-weight:800;font-size:.78rem;
+  padding:3px 10px;border-radius:999px;box-shadow:0 4px 12px rgba(0,0,0,.4);white-space:nowrap;
+}
+.pile-empty{width:58px;height:82px;border-radius:8px;border:2px dashed rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;color:var(--mute);font-size:1.4rem;}
+.pile-label{font-size:.82rem;color:var(--void);}
+.last-play{font-size:.78rem;color:var(--gold-dim);font-weight:600;font-family:var(--font-display);}
+
+/* hand */
+.hand{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;padding:6px 0 2px;min-height:124px;}
+.card{
+  width:84px;height:120px;border-radius:9px;cursor:pointer;position:relative;
+  border:3px solid transparent;background:#fff;
+  box-shadow:0 10px 22px rgba(0,0,0,.45);
+  transition:transform .16s,border-color .16s,box-shadow .16s;
+  animation:deal .35s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--i) * .05s);
+}
+@keyframes deal{from{opacity:0;transform:translateY(26px) rotate(-6deg);}to{opacity:1;transform:none;}}
+.card img{width:100%;height:100%;border-radius:6px;object-fit:contain;display:block;}
+.card:hover{transform:translateY(-12px);box-shadow:0 18px 32px rgba(0,0,0,.55);}
+.card.selected{border-color:var(--gold);transform:translateY(-18px);box-shadow:0 22px 40px rgba(201,164,75,.35),0 0 0 1px rgba(201,164,75,.4);}
+.card.disabled{cursor:default;}
+.card.disabled:hover{transform:none;box-shadow:0 10px 22px rgba(0,0,0,.45);}
+
+.actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+.actions .btn{min-width:160px;}
+.mystatus{display:flex;align-items:center;gap:10px;font-size:.85rem;color:var(--dust);}
+.mystatus.dead{color:var(--flare);font-weight:600;}
+
+/* ── Result overlay ── */
+.overlay{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(4,4,10,.82);backdrop-filter:blur(6px);animation:fade .25s ease;}
+.overlay-card{
+  width:100%;max-width:440px;border-radius:24px;padding:32px 28px;text-align:center;
+  background:linear-gradient(180deg,var(--nebula),#100f24);
+  border:1px solid var(--border-strong);box-shadow:0 40px 100px rgba(0,0,0,.6);
+  display:flex;flex-direction:column;align-items:center;gap:14px;animation:popin .35s cubic-bezier(.2,.9,.3,1.2);
+}
+@keyframes popin{from{opacity:0;transform:scale(.9) translateY(10px);}to{opacity:1;transform:none;}}
+.overlay-card .accuse{font-family:var(--font-display);font-size:1.25rem;font-weight:800;line-height:1.25;}
+.overlay-card .accuse .who{color:var(--gold-h);}
+.reveal-cards{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+.reveal-cards img{width:56px;height:80px;border-radius:6px;box-shadow:0 8px 18px rgba(0,0,0,.5);background:#fff;animation:flip .4s ease backwards;animation-delay:calc(var(--i) * .12s);}
+@keyframes flip{from{opacity:0;transform:rotateY(90deg);}to{opacity:1;transform:none;}}
+.verdict{font-size:.95rem;color:var(--dust);line-height:1.45;}
+.verdict.caught{color:var(--flare-h);font-weight:600;}
+.verdict.safe-call{color:var(--aurora);font-weight:600;}
+.shot{font-family:var(--font-display);font-size:1.5rem;font-weight:800;margin-top:2px;}
+.shot.bang{color:var(--flare);text-shadow:0 0 30px rgba(255,94,91,.5);animation:shake .5s;}
+.shot.click{color:var(--aurora);}
+@keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-8px);}40%{transform:translateX(8px);}60%{transform:translateX(-5px);}80%{transform:translateX(5px);}}
+
+/* ── Game over ── */
+#screen-gameover .panel{gap:14px;}
+.crown{font-size:3rem;filter:drop-shadow(0 6px 16px rgba(201,164,75,.4));}
+.winner-name{font-family:var(--font-display);font-size:1.9rem;font-weight:800;}
+.winner-sub{color:var(--void);font-size:.9rem;}
+
+@media (max-width:560px){
+  #app{padding:16px;}
+  .panel{padding:32px 22px 26px;}
+  .topbar{flex-direction:column;gap:12px;align-items:stretch;}
+  .turn-pill{justify-content:center;}
+  .card{width:64px;height:92px;}
+  .actions .btn{min-width:0;flex:1;}
+  .opp{min-width:106px;}
+  .roomcode{font-size:2.1rem;}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important;}
+}
+</style>
+</head>
+<body>
+<a href="/" class="back-link">&#8592; Games</a>
+<div id="app">
+
+  <!-- LOBBY -->
+  <div id="screen-lobby" class="screen active">
+    <div class="panel">
+      <div class="emblem"><span>&#9824;</span></div>
+      <p class="kicker">Bluffing card game</p>
+      <h1 class="title">Liar's Bar</h1>
+      <p class="tagline">Play your cards face down and lie through your teeth. Get caught, and you pull the trigger.</p>
+      <input id="name-input" class="field" type="text" placeholder="Your name" maxlength="12" autocomplete="off" />
+      <div class="btn-row">
+        <button id="btn-create" class="btn btn-gold btn-wide">Create Game</button>
+      </div>
+      <div class="divider">or join a room</div>
+      <div class="join-row">
+        <input id="code-input" class="field code" type="text" placeholder="CODE" maxlength="4" autocomplete="off" autocapitalize="characters" />
+        <button id="btn-join" class="btn btn-ghost">Join</button>
+      </div>
+      <div id="error-msg" class="error"></div>
+    </div>
+  </div>
+
+  <!-- WAITING ROOM -->
+  <div id="screen-waiting" class="screen">
+    <div class="panel">
+      <p class="section-label">Room code</p>
+      <div id="room-code" class="roomcode">----</div>
+      <p class="tagline">Share this code with friends on the same WiFi.</p>
+      <div id="player-list" class="seat-list"></div>
+      <button id="btn-start" class="btn btn-gold btn-wide hidden">Start Game</button>
+      <p class="tagline" id="wait-hint">Waiting for players… (2–4)</p>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div id="screen-game" class="screen">
+    <div class="topbar">
+      <div class="table-card-wrap" id="table-card-wrap"></div>
+      <div class="turn-pill" id="turn-info"><span class="dot"></span><span id="turn-text"></span></div>
+    </div>
+    <div id="opponents" class="opponents"></div>
+    <div class="table-center">
+      <div id="pile" class="pile"></div>
+      <div id="pile-info" class="pile-label"></div>
+      <div id="last-play" class="last-play"></div>
+    </div>
+    <div id="my-hand" class="hand"></div>
+    <div class="actions">
+      <button id="btn-play" class="btn btn-gold" disabled>Play Selected</button>
+      <button id="btn-liar" class="btn btn-danger" disabled>&#128299; Call LIAR</button>
+    </div>
+    <div id="my-status" class="mystatus"></div>
+    <div id="result-overlay" class="overlay hidden">
+      <div id="result-content" class="overlay-card"></div>
+    </div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="screen-gameover" class="screen">
+    <div class="panel">
+      <div class="crown">&#127942;</div>
+      <div id="winner-text" class="winner-name"></div>
+      <p class="winner-sub">Last liar standing.</p>
+      <button class="btn btn-gold btn-wide" onclick="location.reload()">Play Again</button>
+      <a href="/" class="link-btn">Back to games</a>
+    </div>
+  </div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io('/liarsbar');
+const $ = id => document.getElementById(id);
+let selectedCards = new Set();
+let myId = null;
+let currentState = null;
+
+const RANK = { king:'K', queen:'Q', ace:'A' };
+const SUIT = { king:'\u2663', queen:'\u2666', ace:'\u2660' };
+const RED  = { queen:true };
+function initials(name){ return (name||'?').trim().slice(0,2).toUpperCase(); }
+
+function chambers(remaining, total){
+  total = total || 6;
+  let html = '';
+  for (let i=0;i<total;i++) html += `<span class="chamber ${i<remaining?'':'spent'}"></span>`;
+  return `<span class="chambers">${html}</span>`;
+}
+
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $('screen-'+name).classList.add('active');
+}
+
+$('btn-create').onclick = () => {
+  const name = $('name-input').value.trim();
+  if (!name) return showError('Enter a name first');
+  socket.emit('create', name);
+};
+$('btn-join').onclick = () => {
+  const name = $('name-input').value.trim();
+  const code = $('code-input').value.trim().toUpperCase();
+  if (!name) return showError('Enter a name first');
+  if (!code || code.length !== 4) return showError('Enter the 4-letter code');
+  socket.emit('join', { code, name });
+};
+$('code-input').addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-join').click(); });
+$('name-input').addEventListener('keydown', e => { if (e.key === 'Enter') $('btn-create').click(); });
+$('btn-start').onclick = () => socket.emit('start');
+$('btn-play').onclick = () => {
+  if (selectedCards.size === 0) return;
+  socket.emit('play', [...selectedCards].sort((a,b)=>a-b));
+  selectedCards.clear();
+};
+$('btn-liar').onclick = () => socket.emit('callLiar');
+
+function showError(msg){ $('error-msg').textContent = msg; }
+socket.on('error', showError);
+socket.on('connect', () => { myId = socket.id; });
+
+socket.on('state', (state) => {
+  currentState = state;
+  $('error-msg').textContent = '';
+  if (state.state === 'lobby') renderWaiting(state);
+  else if (state.state === 'playing') renderGame(state);
+  else if (state.state === 'roundEnd') renderResult(state);
+  else if (state.state === 'gameOver') renderGameOver(state);
+});
+
+function renderWaiting(s){
+  showScreen('waiting');
+  $('room-code').textContent = s.roomCode;
+  $('player-list').innerHTML = s.players.map(p => `
+    <div class="seat">
+      <span class="avatar">${initials(p.name)}</span>
+      <span class="seat-name">${escapeHtml(p.name)}${p.id===myId?' (you)':''}</span>
+      ${s.players[0] && s.players[0].id===p.id ? '<span class="seat-tag">host</span>' : ''}
+    </div>
+  `).join('');
+  const isHost = s.players[0]?.id === myId;
+  const enough = s.players.length >= 2;
+  $('btn-start').classList.toggle('hidden', !isHost || !enough);
+  $('wait-hint').textContent = !enough
+    ? 'Waiting for at least one more player… (2–4)'
+    : (isHost ? 'Everyone in? Start when ready.' : 'Waiting for the host to start…');
+}
+
+function renderGame(s){
+  showScreen('game');
+  $('result-overlay').classList.add('hidden');
+
+  // Table card chip
+  const t = s.tableType;
+  $('table-card-wrap').innerHTML = `
+    <div class="mini-card ${RED[t]?'red':''}">
+      <span class="mc-rank">${RANK[t]||'?'}</span>
+      <span class="mc-suit">${SUIT[t]||''}</span>
+    </div>
+    <div class="table-meta">
+      <span class="table-kicker">Table card</span>
+      <strong>${(t||'').toUpperCase()}</strong>
+      <span class="table-hint">play these or a Joker to stay honest</span>
+    </div>`;
+
+  // Turn pill
+  const isMyTurn = s.currentTurn === myId;
+  const pill = $('turn-info');
+  pill.classList.toggle('mine', isMyTurn);
+  $('turn-text').textContent = isMyTurn ? 'Your turn' : `${s.currentTurnName || '—'}'s turn`;
+
+  // Opponents
+  $('opponents').innerHTML = s.players.filter(p => p.id !== myId).map(p => `
+    <div class="opp ${p.alive?'':'dead'} ${s.currentTurn===p.id?'active':''}">
+      <div class="opp-top">
+        <span class="avatar">${initials(p.name)}</span>
+        <span class="opp-name">${escapeHtml(p.name)}</span>
+      </div>
+      <span class="cardcount">${p.alive ? `<span class="mini-back"></span> ${p.cardCount} card${p.cardCount===1?'':'s'}` : 'eliminated'}</span>
+      ${chambers(p.bulletsLeft)}
+    </div>
+  `).join('') || '<div class="pile-label">Waiting for opponents…</div>';
+
+  // Pile
+  const pileEl = $('pile');
+  if (s.pileCount > 0){
+    const n = Math.min(5, s.pileCount);
+    let html = '';
+    for (let i=0;i<n;i++) html += `<img class="pile-card" style="--i:${i}" src="/cards/back.png" alt="">`;
+    html += `<span class="pile-count">${s.pileCount} in pile</span>`;
+    pileEl.innerHTML = html;
+  } else {
+    pileEl.innerHTML = '<div class="pile-empty">&#9824;</div>';
+  }
+  $('pile-info').textContent = s.pileCount > 0 ? 'Cards played face down' : 'No cards played yet';
+  $('last-play').textContent = s.lastPlayCount ? `Last player put down ${s.lastPlayCount} card${s.lastPlayCount===1?'':'s'}` : '';
+
+  // My hand
+  selectedCards = new Set([...selectedCards].filter(i => i < s.myHand.length));
+  $('my-hand').innerHTML = s.myHand.map((card,i) => `
+    <div class="card ${selectedCards.has(i)?'selected':''} ${isMyTurn?'':'disabled'}" data-idx="${i}" style="--i:${i}">
+      <img src="/cards/${card.image}" alt="${card.type}">
+    </div>
+  `).join('') || '<div class="pile-label">No cards in hand — sit tight.</div>';
+
+  document.querySelectorAll('#my-hand .card').forEach(el => {
+    el.onclick = () => {
+      if (!isMyTurn) return;
+      const idx = parseInt(el.dataset.idx);
+      if (selectedCards.has(idx)) selectedCards.delete(idx);
+      else if (selectedCards.size < 3) selectedCards.add(idx);
+      updateSelectionUI();
+    };
+  });
+
+  $('btn-play').disabled = !isMyTurn || selectedCards.size === 0;
+  $('btn-liar').disabled = !s.canCallLiar || !isMyTurn;
+
+  const me = s.players.find(p => p.id === myId);
+  const statusEl = $('my-status');
+  if (me && me.alive){
+    statusEl.classList.remove('dead');
+    statusEl.innerHTML = `<span>Your revolver</span> ${chambers(me.bulletsLeft)}`;
+  } else {
+    statusEl.classList.add('dead');
+    statusEl.textContent = '\u2620 You are eliminated — spectating.';
+  }
+}
+
+function updateSelectionUI(){
+  const isMyTurn = currentState && currentState.currentTurn === myId;
+  document.querySelectorAll('#my-hand .card').forEach(el => {
+    const idx = parseInt(el.dataset.idx);
+    el.classList.toggle('selected', selectedCards.has(idx));
+  });
+  $('btn-play').disabled = !isMyTurn || selectedCards.size === 0;
+  const playBtn = $('btn-play');
+  playBtn.textContent = selectedCards.size ? `Play ${selectedCards.size} card${selectedCards.size===1?'':'s'}` : 'Play Selected';
+}
+
+function renderResult(s){
+  showScreen('game');
+  const r = s.lastResult;
+  if (!r) return;
+  const cards = r.cards.map((c,i) => `<img style="--i:${i}" src="/cards/${c.image}" alt="${c.type}">`).join('');
+  $('result-content').innerHTML = `
+    <div class="accuse"><span class="who">${escapeHtml(r.callerName)}</span> called LIAR on <span class="who">${escapeHtml(r.accusedName)}</span></div>
+    <div class="reveal-cards">${cards}</div>
+    <div class="verdict ${r.wasLiar?'caught':'safe-call'}">
+      ${r.wasLiar
+        ? `Caught lying! ${escapeHtml(r.accusedName)} spins the cylinder…`
+        : `Honest play — the call was wrong. ${escapeHtml(r.callerName)} spins the cylinder…`}
+    </div>
+    <div class="shot ${r.shotResult==='bang'?'bang':'click'}">
+      ${r.shotResult==='bang' ? `\uD83D\uDCA5 BANG — ${escapeHtml(r.loserName)} is out!` : `\u00B7 click \u00B7 ${escapeHtml(r.loserName)} survives`}
+    </div>`;
+  $('result-overlay').classList.remove('hidden');
+}
+
+function renderGameOver(s){
+  showScreen('gameover');
+  $('winner-text').textContent = s.winner ? `${s.winner.name} wins` : 'Game over';
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+</body>
+</html>

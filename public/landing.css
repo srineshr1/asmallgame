@@ -1,0 +1,275 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Small Games — Game Launcher
+   Premium feel, two game cards, part of the Tilt Tiles design family.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* ── Design tokens ─────────────────────────────────────────────────────── */
+:root {
+    --cosmos: #080812;
+    --nebula: #15142a;
+    --nebula-2: #1e1d38;
+    --border: rgba(255, 255, 255, 0.06);
+
+    --stardust: #eeeaf4;
+    --dust: #a09db5;
+    --void: #787490;
+    --mute: #4a4760;
+
+    --flare: #ff5e5b;
+    --flare-h: #ff7b78;
+    --aurora: #34d399;
+    --solar: #f59e0b;
+    --glacier: #818cf8;
+
+    --gold: #c9a44b;
+    --gold-dim: #8a7040;
+
+    --r: 20px;
+
+    --font-display:
+        "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-body:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* ── Reset & base ──────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+html,
+body {
+    width: 100%;
+    min-height: 100%;
+    background: var(--cosmos);
+    font-family: var(--font-body);
+    color: var(--stardust);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Container ─────────────────────────────────────────────────────────── */
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px 24px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    justify-content: center;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+.header {
+    text-align: center;
+    margin-bottom: 48px;
+}
+.header-label {
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--mute);
+    margin-bottom: 10px;
+}
+.header-title {
+    font-family: var(--font-display);
+    font-size: 2.6rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--stardust);
+    line-height: 1.1;
+    margin-bottom: 12px;
+}
+.header-sub {
+    font-size: 0.9375rem;
+    color: var(--void);
+    max-width: 340px;
+    line-height: 1.55;
+}
+
+/* ── Games grid ────────────────────────────────────────────────────────── */
+.games {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 40px;
+}
+
+/* ── Game card ─────────────────────────────────────────────────────────── */
+.game-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 32px 20px 24px;
+    background: var(--nebula);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition:
+        border-color 0.25s,
+        background 0.25s,
+        transform 0.15s;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.game-card:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: var(--nebula-2);
+}
+.game-card:active {
+    transform: scale(0.985);
+}
+.game-card:focus-visible {
+    outline: 2px solid var(--flare);
+    outline-offset: 2px;
+}
+
+/* Card-specific accent glows on hover */
+#card-tilt:hover {
+    border-color: rgba(255, 94, 91, 0.3);
+}
+#card-liar:hover {
+    border-color: rgba(201, 164, 75, 0.3);
+}
+
+/* ── Game icon ─────────────────────────────────────────────────────────── */
+.game-icon {
+    width: 72px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Tilt Tiles icon — the 2×2 tile grid */
+.tile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    width: 68px;
+    height: 68px;
+}
+.tile {
+    border-radius: 12px;
+}
+.t-aurora {
+    background: var(--aurora);
+}
+.t-flare {
+    background: var(--flare);
+}
+.t-glacier {
+    background: var(--glacier);
+}
+.t-solar {
+    background: var(--solar);
+}
+
+/* Liar's Bar icon — card suit emblem */
+.dagger-emblem {
+    width: 68px;
+    height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(201, 164, 75, 0.1);
+    border: 2px solid rgba(201, 164, 75, 0.35);
+}
+.suit {
+    font-size: 2.4rem;
+    line-height: 1;
+    color: var(--gold);
+    transition: color 0.25s;
+}
+.game-card:hover .suit {
+    color: #dbb860;
+}
+
+/* ── Game info ─────────────────────────────────────────────────────────── */
+.game-info {
+    text-align: center;
+}
+.game-name {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--stardust);
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+}
+.game-pitch {
+    font-size: 0.8125rem;
+    color: var(--void);
+    line-height: 1.5;
+    max-width: 200px;
+}
+
+/* ── Arrow ─────────────────────────────────────────────────────────────── */
+.game-arrow {
+    font-size: 1.1rem;
+    color: var(--mute);
+    transition:
+        transform 0.2s,
+        color 0.2s;
+    margin-top: 4px;
+}
+.game-card:hover .game-arrow {
+    transform: translateX(3px);
+    color: var(--dust);
+}
+
+/* ── Footer ────────────────────────────────────────────────────────────── */
+.footer {
+    text-align: center;
+}
+.footer p {
+    font-size: 0.75rem;
+    color: var(--mute);
+    line-height: 1.6;
+}
+
+/* ── Mobile: stack cards ──────────────────────────────────────────────── */
+@media (max-width: 480px) {
+    .games {
+        grid-template-columns: 1fr;
+    }
+    .header-title {
+        font-size: 2rem;
+    }
+    .container {
+        padding: 32px 20px 32px;
+        justify-content: flex-start;
+        padding-top: 60px;
+    }
+}
+
+/* ── Reduced motion ───────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .game-card {
+        transition: none;
+    }
+    .game-card:active {
+        transform: none;
+    }
+    .game-arrow {
+        transition: none;
+    }
+    .suit {
+        transition: none;
+    }
+}

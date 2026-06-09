@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liar's Bar</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <!-- LOBBY SCREEN -->
+  <div id="screen-lobby" class="screen active">
+    <h1>🃏 Liar's Bar</h1>
+    <p class="subtitle">Bluff or get shot.</p>
+    <input id="name-input" type="text" placeholder="Your name" maxlength="12" autocomplete="off">
+    <div class="btn-row">
+      <button id="btn-create">Create Game</button>
+      <div class="join-row">
+        <input id="code-input" type="text" placeholder="CODE" maxlength="4" autocomplete="off">
+        <button id="btn-join">Join</button>
+      </div>
+    </div>
+    <div id="error-msg" class="error"></div>
+  </div>
+
+  <!-- WAITING ROOM -->
+  <div id="screen-waiting" class="screen">
+    <h2>Room: <span id="room-code"></span></h2>
+    <div id="player-list"></div>
+    <button id="btn-start" class="hidden">Start Game</button>
+    <p class="hint">Waiting for players (2-4)...</p>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="screen-game" class="screen">
+    <div id="game-header">
+      <div id="table-type-display"></div>
+      <div id="pile-info"></div>
+      <div id="turn-info"></div>
+    </div>
+    <div id="opponents"></div>
+    <div id="result-overlay" class="hidden">
+      <div id="result-content"></div>
+    </div>
+    <div id="my-hand"></div>
+    <div id="actions">
+      <button id="btn-play" disabled>Play Selected</button>
+      <button id="btn-liar" disabled>🔫 Call LIAR!</button>
+    </div>
+    <div id="my-status"></div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="screen-gameover" class="screen">
+    <h2 id="winner-text"></h2>
+    <button onclick="location.reload()">Play Again</button>
+  </div>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

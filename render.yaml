@@ -1,0 +1,13 @@
+# Render Blueprint — one-click deploy of the Small Games server.
+# Render gives you a free public HTTPS URL with WebSocket support, which is
+# exactly what Socket.io needs. TLS is handled by Render, so we run HTTP-only.
+services:
+  - type: web
+    name: small-games
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DISABLE_HTTPS
+        value: "1"

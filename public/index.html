@@ -1,226 +1,90 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-        />
-        <meta name="theme-color" content="#0a0a0c" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta
-            name="apple-mobile-web-app-status-bar-style"
-            content="black-translucent"
-        />
-        <title>Tilt Tiles</title>
-        <link rel="stylesheet" href="style.css" />
-    </head>
-    <body>
-        <!-- Game canvas (visible during play) -->
-        <canvas id="game"></canvas>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#080812" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Small Games</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="landing.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <p class="header-label">Local multiplayer</p>
+        <h1 class="header-title">Small Games</h1>
+        <p class="header-sub">Pick a game, share the code, play with friends on the same WiFi.</p>
+      </header>
 
-        <!-- Overlay UI -->
-        <div id="ui">
-            <!-- In-game HUD -->
-            <div id="hud" class="hidden">
-                <span id="hud-left">Round 1</span>
-                <span id="hud-right"></span>
+      <div class="games">
+        <!-- Tilt Tiles -->
+        <a href="tilttiles.html" class="game-card" id="card-tilt">
+          <div class="game-icon" aria-hidden="true">
+            <div class="tile-grid">
+              <span class="tile t-aurora"></span>
+              <span class="tile t-flare"></span>
+              <span class="tile t-glacier"></span>
+              <span class="tile t-solar"></span>
             </div>
+          </div>
+          <div class="game-info">
+            <h2 class="game-name">Tilt Tiles</h2>
+            <p class="game-pitch">Tilt your phone. Roll to safety. Survive the grid.</p>
+          </div>
+          <span class="game-arrow">&#8594;</span>
+        </a>
 
-            <!-- Timer bar -->
-            <div id="timer-bar" class="hidden">
-                <div id="timer-bar-fill"></div>
+        <!-- Liar's Bar -->
+        <a href="liarsbar.html" class="game-card" id="card-liar">
+          <div class="game-icon" aria-hidden="true">
+            <div class="dagger-emblem">
+              <span class="suit">&#9824;</span>
             </div>
+          </div>
+          <div class="game-info">
+            <h2 class="game-name">Liar's Bar</h2>
+            <p class="game-pitch">Bluff your way out. Or take the bullet.</p>
+          </div>
+          <span class="game-arrow">&#8594;</span>
+        </a>
+      </div>
 
-            <!-- Spectating banner -->
-            <div id="spectate-banner" class="banner hidden">
-                You're out &mdash; spectating
-            </div>
 
-            <!-- Toast -->
-            <div id="toast" class="toast hidden"></div>
+    </div>
 
-            <!-- Settings / tuning panel -->
-            <div id="tune-panel" class="hidden">
-                <div class="tune-readout" id="tune-readout">tilt: &mdash;</div>
-                <div class="tune-rows">
-                    <label
-                        >Max tilt<input
-                            type="range"
-                            id="t-maxtilt"
-                            min="8"
-                            max="60"
-                            step="1" /><span id="v-maxtilt"></span
-                    ></label>
-                    <label
-                        >Acceleration<input
-                            type="range"
-                            id="t-accel"
-                            min="3"
-                            max="40"
-                            step="0.5" /><span id="v-accel"></span
-                    ></label>
-                    <label
-                        >Friction<input
-                            type="range"
-                            id="t-friction"
-                            min="0.2"
-                            max="9"
-                            step="0.1" /><span id="v-friction"></span
-                    ></label>
-                    <label
-                        >Max speed<input
-                            type="range"
-                            id="t-maxspeed"
-                            min="2"
-                            max="20"
-                            step="0.5" /><span id="v-maxspeed"></span
-                    ></label>
-                    <label
-                        >Bounce<input
-                            type="range"
-                            id="t-bounce"
-                            min="0"
-                            max="0.95"
-                            step="0.05" /><span id="v-bounce"></span
-                    ></label>
-                    <label
-                        >Dead-zone<input
-                            type="range"
-                            id="t-deadzone"
-                            min="0"
-                            max="12"
-                            step="0.5" /><span id="v-deadzone"></span
-                    ></label>
-                </div>
-                <div class="tune-actions">
-                    <button id="tune-recenter" class="btn secondary">
-                        Recenter
-                    </button>
-                    <button id="tune-copy" class="btn secondary">Copy</button>
-                    <button id="tune-done" class="btn">Done</button>
-                </div>
-                <p class="tune-note">
-                    Changes save automatically and apply to your ball in every
-                    game.
-                </p>
-            </div>
+    <script>
+      // Route each game to the right protocol — but ONLY on a bare LAN IP,
+      // where Tilt Tiles needs the self-signed HTTPS port for motion sensors
+      // while Liar's Bar can stay on plain HTTP (no cert warning).
+      //
+      // On localhost OR a real domain (cloud hosting), the whole site is already
+      // one origin (HTTPS in the cloud), so the relative links work for both
+      // games and Tilt Tiles sensors work without any cert juggling.
+      (function () {
+        var host = location.hostname;
+        var isLanIP = /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
+        if (!isLanIP) return;
 
-            <!-- Menu screen -->
-            <div id="menu-screen" class="screen">
-                <div class="panel">
-                    <h1>Tilt Tiles</h1>
-                    <p class="sub">
-                        Tilt your phone to roll your ball onto a
-                        <span class="g">safe</span> tile before the
-                        <span class="r">unsafe</span> ones vanish.
-                    </p>
-                    <a id="secure-link" class="securelink hidden" href="#"
-                        >Open secure link for tilt controls</a
-                    >
-                    <input
-                        id="name-input"
-                        class="field"
-                        type="text"
-                        maxlength="14"
-                        placeholder="Your name"
-                        autocomplete="off"
-                    />
-                    <button id="solo-btn" class="btn">🎮 Single Player</button>
-                    <button id="create-btn" class="btn secondary">Create Game</button>
-                    <div class="divider"><span>or join a room</span></div>
-                    <div class="join-row">
-                        <input
-                            id="code-input"
-                            class="field code"
-                            type="text"
-                            maxlength="4"
-                            placeholder="CODE"
-                            autocomplete="off"
-                            autocapitalize="characters"
-                        />
-                        <button id="join-btn" class="btn secondary">
-                            Join
-                        </button>
-                    </div>
-                    <button id="tune-btn" class="text-btn">Settings</button>
-                    <p class="hint" id="menu-hint">
-                        On desktop, use the arrow keys or WASD.
-                    </p>
-                    <div class="instructions">
-                        <p>Tilt your phone to roll your ball</p>
-                        <p>Green tiles are safe, red ones vanish</p>
-                        <p>Get onto green before the timer runs out</p>
-                        <p>Last player standing wins</p>
-                    </div>
-                </div>
-            </div>
+        var curPort = Number(location.port) || (location.protocol === "https:" ? 443 : 80);
+        var httpPort, httpsPort;
+        if (location.protocol === "https:") {
+          httpsPort = curPort;
+          httpPort = curPort - 1;
+        } else {
+          httpPort = curPort;
+          httpsPort = curPort + 1;
+        }
 
-            <!-- Lobby screen -->
-            <div id="lobby-screen" class="screen hidden">
-                <div class="panel">
-                    <p class="sub">Room code</p>
-                    <div id="room-code" class="roomcode">----</div>
-                    <p class="hint">
-                        Others on the same WiFi can join with this code.
-                    </p>
-                    <ul id="player-list" class="players"></ul>
-                    <button id="start-btn" class="btn hidden">
-                        Start Game
-                    </button>
-                    <p id="lobby-wait" class="hint">
-                        Waiting for host to start&hellip;
-                    </p>
-                    <button id="leave-btn" class="text-btn">Leave</button>
-                </div>
-            </div>
-
-            <!-- Results screen -->
-            <div id="over-screen" class="screen hidden">
-                <div class="panel">
-                    <h1 id="over-title">Game Over</h1>
-                    <p class="sub" id="over-sub">You survived 0 rounds.</p>
-                    <ol id="standings" class="standings"></ol>
-                    <button id="over-ready-btn" class="btn">✔ Ready to replay</button>
-                    <button id="over-start-btn" class="btn hidden">Start Game</button>
-                    <p id="over-ready-status" class="hint"></p>
-                    <button id="retry-btn" class="btn ghost">Leave to menu</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="errbar"></div>
-
-        <script src="/socket.io/socket.io.js"></script>
-        <script>
-            (function () {
-                var bar = document.getElementById("errbar");
-                function show(msg) {
-                    bar.textContent = "Error: " + msg;
-                    bar.style.display = "block";
-                }
-                window.addEventListener("error", function (e) {
-                    show(
-                        (e.message || "Error") +
-                            (e.filename
-                                ? " @ " +
-                                  e.filename.split("/").pop() +
-                                  ":" +
-                                  e.lineno
-                                : ""),
-                    );
-                });
-                window.addEventListener("unhandledrejection", function (e) {
-                    show(
-                        "Promise: " +
-                            (e.reason && e.reason.message
-                                ? e.reason.message
-                                : e.reason),
-                    );
-                });
-            })();
-        </script>
-        <script type="module" src="js/main.js"></script>
-    </body>
+        var tilt = document.getElementById("card-tilt");
+        var liar = document.getElementById("card-liar");
+        if (tilt) tilt.href = "https://" + host + ":" + httpsPort + "/tilttiles.html";
+        if (liar) liar.href = "http://" + host + ":" + httpPort + "/liarsbar.html";
+      })();
+    </script>
+  </body>
 </html>

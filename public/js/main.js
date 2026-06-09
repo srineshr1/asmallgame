@@ -48,6 +48,7 @@ const leaveBtn = document.getElementById("leave-btn");
 
 const overTitle = document.getElementById("over-title");
 const overSub = document.getElementById("over-sub");
+const overCrown = document.getElementById("over-crown");
 const standingsEl = document.getElementById("standings");
 const overReadyBtn = document.getElementById("over-ready-btn");
 const overStartBtn = document.getElementById("over-start-btn");
@@ -67,11 +68,14 @@ function showToast(msg, ms = 1400) {
 }
 
 // --- Screen manager ---
+const homeLink = document.getElementById("home-link");
 function showScreen(name) {
   for (const [key, el] of Object.entries(screens)) {
     el.classList.toggle("hidden", key !== name);
   }
   hud.classList.toggle("hidden", name !== null);
+  // Show the "Back to Games" link on any menu screen, hide it during gameplay.
+  if (homeLink) homeLink.classList.toggle("hidden", name === null);
 }
 
 // --- Local-player info ---
@@ -80,6 +84,7 @@ let isHost = false;
 let amAlive = true;
 let myReady = false;
 let soloMode = false;
+let lastPlayers = [];
 
 // --- Render state (driven by server 'state' messages) ---
 const view = {
@@ -209,6 +214,7 @@ startBtn.addEventListener("click", async () => {
 // Lobby player list.
 net.on("room:players", ({ players, hostId }) => {
   isHost = hostId === net.youId;
+  lastPlayers = players;
   const me = players.find((p) => p.id === net.youId);
   if (me) myColorIndex = me.colorIndex;
 
@@ -252,7 +258,8 @@ function updateReplayControls(players) {
   const me = players.find((p) => p.id === net.youId);
   myReady = !!(me && me.ready);
   overReadyBtn.textContent = myReady ? "✔ Ready — tap to cancel" : "Ready to replay";
-  overReadyBtn.classList.toggle("secondary", myReady);
+  overReadyBtn.classList.toggle("ghost", myReady);
+  overReadyBtn.classList.toggle("primary", !myReady);
 
   const others = players.filter((p) => !p.isHost);
   const readyCount = others.filter((p) => p.ready).length;
@@ -359,12 +366,14 @@ net.on("game:eliminated", ({ ids }) => {
 net.on("game:over", ({ solo, winnerId, winnerName, rounds, roundsSurvived, standings }) => {
   soloMode = !!solo;
   if (solo) {
+    overCrown.classList.add("hidden");
     overTitle.textContent = "Game Over";
     overSub.textContent = `You survived ${roundsSurvived} round${roundsSurvived === 1 ? "" : "s"}!`;
     standingsEl.innerHTML = "";
   } else {
     const iWon = winnerId === net.youId;
-    overTitle.textContent = iWon ? "You Win" : "Game Over";
+    overCrown.classList.toggle("hidden", !iWon);
+    overTitle.textContent = iWon ? "You Win!" : "Game Over";
     overSub.textContent = winnerName
       ? `${iWon ? "You" : winnerName} won after ${rounds} round${rounds === 1 ? "" : "s"}.`
       : `No survivors after ${rounds} rounds.`;
@@ -402,6 +411,10 @@ net.on("game:over", ({ solo, winnerId, winnerName, rounds, roundsSurvived, stand
   }
 
   spectateBanner.classList.add("hidden");
+  // Configure the replay controls immediately so solo never shows the
+  // multiplayer "Ready to replay" button (room:players may arrive later or not
+  // at all). updateReplayControls handles the solo vs multiplayer split.
+  updateReplayControls(lastPlayers);
   showScreen("over");
 });
 

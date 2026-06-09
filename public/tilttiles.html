@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+        />
+        <meta name="theme-color" content="#080812" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta
+            name="apple-mobile-web-app-status-bar-style"
+            content="black-translucent"
+        />
+        <title>Tilt Tiles</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <canvas id="game"></canvas>
+
+        <div id="ui">
+            <!-- Back to game selection (hidden during gameplay) -->
+            <a id="home-link" href="/" class="home-link">&#8592; Games</a>
+
+            <!-- ── In-game HUD ───────────────────────────────────── -->
+            <div id="hud" class="hidden">
+                <span id="hud-left">Round 1</span>
+                <span id="hud-right"></span>
+            </div>
+            <div id="timer-bar" class="hidden">
+                <div id="timer-bar-fill"></div>
+            </div>
+            <div id="spectate-banner" class="banner hidden">Spectating</div>
+            <div id="toast" class="toast hidden"></div>
+
+            <!-- ── Settings panel (bottom sheet) ───────────────── -->
+            <div id="tune-panel" class="hidden">
+                <div class="tune-handle"></div>
+                <p class="tune-readout" id="tune-readout">tilt: —</p>
+                <div class="tune-rows">
+                    <label
+                        >Max tilt
+                        <input
+                            type="range"
+                            id="t-maxtilt"
+                            min="8"
+                            max="60"
+                            step="1" /><span id="v-maxtilt"></span
+                    ></label>
+                    <label
+                        >Acceleration
+                        <input
+                            type="range"
+                            id="t-accel"
+                            min="3"
+                            max="40"
+                            step="0.5" /><span id="v-accel"></span
+                    ></label>
+                    <label
+                        >Friction
+                        <input
+                            type="range"
+                            id="t-friction"
+                            min="0.2"
+                            max="9"
+                            step="0.1" /><span id="v-friction"></span
+                    ></label>
+                    <label
+                        >Max speed
+                        <input
+                            type="range"
+                            id="t-maxspeed"
+                            min="2"
+                            max="20"
+                            step="0.5" /><span id="v-maxspeed"></span
+                    ></label>
+                    <label
+                        >Bounce
+                        <input
+                            type="range"
+                            id="t-bounce"
+                            min="0"
+                            max="0.95"
+                            step="0.05" /><span id="v-bounce"></span
+                    ></label>
+                    <label
+                        >Dead-zone
+                        <input
+                            type="range"
+                            id="t-deadzone"
+                            min="0"
+                            max="12"
+                            step="0.5" /><span id="v-deadzone"></span
+                    ></label>
+                </div>
+                <div class="tune-actions">
+                    <button id="tune-recenter" class="btn pill ghost">
+                        Recenter
+                    </button>
+                    <button id="tune-copy" class="btn pill ghost">Copy</button>
+                    <button id="tune-done" class="btn pill primary">
+                        Done
+                    </button>
+                </div>
+                <p class="tune-note">
+                    Saves automatically · applies to your ball in every game
+                </p>
+            </div>
+
+            <!-- ── Menu ─────────────────────────────────────────── -->
+            <div id="menu-screen" class="screen">
+                <div class="panel">
+                    <div class="logo" aria-label="Tilt Tiles">
+                        <div class="logo-grid">
+                            <span class="logo-tile lt-aurora"></span>
+                            <span class="logo-tile lt-flare"></span>
+                            <span class="logo-tile lt-glacier"></span>
+                            <span class="logo-tile lt-solar"></span>
+                        </div>
+                        <span class="logo-text">Tilt Tiles</span>
+                    </div>
+                    <p class="tagline">
+                        Roll onto <em class="safe-word">green</em> before the
+                        <em class="danger-word">red</em> tiles vanish
+                    </p>
+
+                    <a id="secure-link" class="secure-banner hidden" href="#">
+                        <span class="secure-icon">&#x1f512;</span>
+                        Tap here for secure link — required for tilt on phones
+                    </a>
+
+                    <input
+                        id="name-input"
+                        class="field"
+                        type="text"
+                        maxlength="14"
+                        placeholder="Your name"
+                        autocomplete="off"
+                    />
+
+                    <div class="btn-group">
+                        <button id="solo-btn" class="btn pill primary wide">
+                            Solo Play
+                        </button>
+                        <button id="create-btn" class="btn pill outline wide">
+                            Create Room
+                        </button>
+                    </div>
+
+                    <div class="divider">or join with a code</div>
+
+                    <div class="join-row">
+                        <input
+                            id="code-input"
+                            class="field code"
+                            type="text"
+                            maxlength="4"
+                            placeholder="CODE"
+                            autocomplete="off"
+                            autocapitalize="characters"
+                        />
+                        <button id="join-btn" class="btn pill primary">
+                            Join
+                        </button>
+                    </div>
+
+                    <button id="tune-btn" class="link-btn">
+                        Control settings
+                    </button>
+                    <p class="hint" id="menu-hint">
+                        Desktop: arrow keys or WASD
+                    </p>
+                </div>
+            </div>
+
+            <!-- ── Lobby ─────────────────────────────────────────── -->
+            <div id="lobby-screen" class="screen hidden">
+                <div class="panel">
+                    <p class="section-label">Room code</p>
+                    <div id="room-code" class="roomcode">----</div>
+                    <p class="hint">
+                        Share this code with friends on the same WiFi
+                    </p>
+                    <ul id="player-list" class="players"></ul>
+                    <button id="start-btn" class="btn pill primary wide hidden">
+                        Start Game
+                    </button>
+                    <p id="lobby-wait" class="hint"></p>
+                    <button id="leave-btn" class="link-btn">Leave room</button>
+                </div>
+            </div>
+
+            <!-- ── Results ───────────────────────────────────────── -->
+            <div id="over-screen" class="screen hidden">
+                <div class="panel">
+                    <div id="over-crown" class="crown hidden">&#x1f3c6;</div>
+                    <h1 id="over-title">Game Over</h1>
+                    <p class="sub" id="over-sub">You survived 0 rounds.</p>
+                    <ol id="standings" class="standings"></ol>
+                    <button id="over-ready-btn" class="btn pill primary wide">
+                        Ready to replay
+                    </button>
+                    <button
+                        id="over-start-btn"
+                        class="btn pill primary wide hidden"
+                    >
+                        Start Game
+                    </button>
+                    <p id="over-ready-status" class="hint"></p>
+                    <button id="retry-btn" class="link-btn">
+                        Leave to menu
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="errbar"></div>
+
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            (function () {
+                var b = document.getElementById("errbar");
+                window.addEventListener("error", function (e) {
+                    b.textContent =
+                        "⚠ " +
+                        (e.message || "Error") +
+                        (e.filename
+                            ? " @ " +
+                              e.filename.split("/").pop() +
+                              ":" +
+                              e.lineno
+                            : "");
+                    b.style.display = "block";
+                });
+                window.addEventListener("unhandledrejection", function (e) {
+                    b.textContent =
+                        "⚠ " +
+                        (e.reason && e.reason.message
+                            ? e.reason.message
+                            : e.reason);
+                    b.style.display = "block";
+                });
+            })();
+        </script>
+        <script type="module" src="js/main.js"></script>
+    </body>
+</html>

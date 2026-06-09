@@ -11,6 +11,7 @@ import { dirname, join } from "path";
 import os from "os";
 import selfsigned from "selfsigned";
 import { GameSim } from "./gamesim.js";
+import { createGame as lbCreateGame, addPlayer as lbAddPlayer, removePlayer as lbRemovePlayer, startGame as lbStartGame, playCards as lbPlayCards, callLiar as lbCallLiar, nextRound as lbNextRound, getPlayerView as lbGetPlayerView } from "./liarsbar-game.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -29,33 +30,51 @@ function lanIPs() {
   return out;
 }
 
-// HTTPS is required by mobile browsers to grant motion-sensor access over the LAN.
-// Generate a throwaway self-signed certificate at startup. Use SHA-256 (SHA-1 is
-// rejected by modern TLS stacks) and list the LAN IPs as subjectAltNames.
-const altNames = [
-  { type: 2, value: "localhost" }, // DNS
-  { type: 7, ip: "127.0.0.1" }, // IP
-  ...lanIPs().map((ip) => ({ type: 7, ip })),
-];
-const pems = await selfsigned.generate(
-  [{ name: "commonName", value: "tilt-tiles.local" }],
-  {
-    days: 365,
-    keySize: 2048,
-    algorithm: "sha256",
-    extensions: [{ name: "subjectAltName", altNames }],
-  },
-);
-const httpsServer = createHttpsServer(
-  { key: pems.private, cert: pems.cert },
-  app,
-);
+// HTTPS is only needed for LOCAL LAN play: mobile browsers require a secure
+// context to grant Tilt Tiles motion-sensor access, and a self-signed cert is
+// the only way to get that on a bare IP. When deployed to a cloud host (Render,
+// Railway, Fly, a VPS behind a reverse proxy, etc.) TLS is terminated by the
+// platform on a single port, so we skip the self-signed cert entirely.
+//   • Local dev  -> HTTP on PORT + HTTPS on PORT+1 (self-signed)   [default]
+//   • Cloud host -> HTTP on PORT only (platform adds real HTTPS)   [DISABLE_HTTPS=1]
+const ENABLE_HTTPS = !process.env.DISABLE_HTTPS;
+let httpsServer = null;
 
-// One Socket.io instance serving BOTH the HTTP and HTTPS servers.
+if (ENABLE_HTTPS) {
+  try {
+    const altNames = [
+      { type: 2, value: "localhost" }, // DNS
+      { type: 7, ip: "127.0.0.1" }, // IP
+      ...lanIPs().map((ip) => ({ type: 7, ip })),
+    ];
+    const pems = await selfsigned.generate(
+      [{ name: "commonName", value: "tilt-tiles.local" }],
+      {
+        days: 365,
+        keySize: 2048,
+        algorithm: "sha256",
+        extensions: [{ name: "subjectAltName", altNames }],
+      },
+    );
+    httpsServer = createHttpsServer(
+      { key: pems.private, cert: pems.cert },
+      app,
+    );
+  } catch (err) {
+    console.warn(
+      "[https] could not start self-signed HTTPS, continuing HTTP-only:",
+      err.message,
+    );
+    httpsServer = null;
+  }
+}
+
+// One Socket.io instance serving the HTTP server (and HTTPS too, if enabled).
 const io = new Server(httpServer);
-io.attach(httpsServer);
+if (httpsServer) io.attach(httpsServer);
 
 app.use(express.static(join(__dirname, "public")));
+app.use("/cards", express.static(join(__dirname, "liars-bar", "cards-assets", "png")));
 
 // ---------------------------------------------------------------------------
 // Room management
@@ -363,35 +382,139 @@ io.on("connection", (socket) => {
 });
 
 // ---------------------------------------------------------------------------
+// Liar's Bar — Socket.io namespace
+// ---------------------------------------------------------------------------
+const lbRooms = {};
+
+function lbGenCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  let code = "";
+  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return lbRooms[code] ? lbGenCode() : code;
+}
+
+function lbBroadcast(roomCode) {
+  const game = lbRooms[roomCode];
+  if (!game) return;
+  for (const p of game.players) {
+    lbNsp.to(p.id).emit("state", lbGetPlayerView(game, p.id));
+  }
+}
+
+const lbNsp = io.of("/liarsbar");
+lbNsp.on("connection", (socket) => {
+  let currentRoom = null;
+
+  socket.on("create", (name) => {
+    const code = lbGenCode();
+    lbRooms[code] = lbCreateGame(code);
+    lbAddPlayer(lbRooms[code], socket.id, name);
+    currentRoom = code;
+    lbBroadcast(code);
+  });
+
+  socket.on("join", ({ code, name }) => {
+    const game = lbRooms[code?.toUpperCase()];
+    if (!game) return socket.emit("error", "Room not found");
+    if (!lbAddPlayer(game, socket.id, name)) return socket.emit("error", "Room full or game started");
+    currentRoom = code.toUpperCase();
+    lbBroadcast(currentRoom);
+  });
+
+  socket.on("start", () => {
+    const game = lbRooms[currentRoom];
+    if (!game) return;
+    if (game.players[0]?.id !== socket.id) return socket.emit("error", "Only host can start");
+    if (!lbStartGame(game)) return socket.emit("error", "Need 2-4 players");
+    lbBroadcast(currentRoom);
+  });
+
+  socket.on("play", (cardIndices) => {
+    const game = lbRooms[currentRoom];
+    if (!game) return;
+    const result = lbPlayCards(game, socket.id, cardIndices);
+    if (!result.ok) return socket.emit("error", "Invalid play");
+    lbBroadcast(currentRoom);
+  });
+
+  socket.on("callLiar", () => {
+    const game = lbRooms[currentRoom];
+    if (!game) return;
+    const result = lbCallLiar(game, socket.id);
+    if (!result.ok) return socket.emit("error", "Can't call liar now");
+    lbBroadcast(currentRoom);
+    if (!result.gameOver) {
+      setTimeout(() => { lbNextRound(game); lbBroadcast(currentRoom); }, 4000);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    if (currentRoom && lbRooms[currentRoom]) {
+      const game = lbRooms[currentRoom];
+      const p = game.players.find((pl) => pl.id === socket.id);
+      if (p) p.alive = false;
+      if (game.state === "lobby") lbRemovePlayer(game, socket.id);
+      if (game.players.filter((pl) => pl.alive).length <= 1 && game.state === "playing") {
+        game.state = "gameOver";
+        game.winner = game.players.find((pl) => pl.alive) || null;
+      }
+      lbBroadcast(currentRoom);
+      if (game.players.length === 0) delete lbRooms[currentRoom];
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 const PORT = Number(process.env.PORT) || 3000;
 const HTTPS_PORT = Number(process.env.HTTPS_PORT) || PORT + 1;
 
-httpServer.listen(PORT, () => {
-  httpsServer.listen(HTTPS_PORT, () => {
+// Bind to 0.0.0.0 so cloud platforms / other devices can reach us.
+httpServer.listen(PORT, "0.0.0.0", () => {
+  if (!httpsServer) {
+    // Cloud / HTTP-only mode: the platform provides real HTTPS on one port.
+    console.log("\n  Small Games server running (HTTP-only / cloud mode).\n");
+    console.log(`  Listening on port ${PORT}.`);
+    console.log(
+      "  Your hosting platform should expose this over its own HTTPS domain.",
+    );
+    console.log(
+      "  Open that public URL and pick a game — anyone with the link can join.",
+    );
+    console.log("");
+    return;
+  }
+
+  httpsServer.listen(HTTPS_PORT, "0.0.0.0", () => {
     const ips = lanIPs();
-    console.log("\n  Tilt Tiles server running!\n");
+    console.log("\n  Small Games server running!\n");
     console.log(`  On this computer:   http://localhost:${PORT}`);
     console.log("");
-    console.log(
-      "  On your PHONE (same WiFi) — use HTTPS so tilt sensors work:",
-    );
+    console.log("  On your PHONE (same WiFi) — open this to pick a game:");
     if (ips.length === 0) console.log("    (no LAN address found)");
     for (const ip of ips) {
-      console.log(`    https://${ip}:${HTTPS_PORT}`);
+      console.log(`    http://${ip}:${PORT}`);
     }
     console.log("");
     console.log(
-      '  NOTE: phones will show a "Not secure / certificate" warning the first',
+      "  Liar's Bar works right away over that http:// link (no sensors needed).",
+    );
+    console.log("");
+    console.log(
+      "  Tilt Tiles needs motion sensors, so phones must use HTTPS for it:",
+    );
+    for (const ip of ips) {
+      console.log(`    https://${ip}:${HTTPS_PORT}`);
+    }
+    console.log(
+      '  The first time, phones show a "Not secure / certificate" warning —',
     );
     console.log(
-      "  time — that's expected for the self-signed cert. Tap Advanced ->",
+      '  that\'s expected for the self-signed cert. Tap Advanced -> "Proceed /',
     );
     console.log(
-      '  "Proceed / Visit anyway" once, then tilt controls will work.',
+      "  Visit anyway\" once, then tilt controls will work. (The game-picker",
     );
-    console.log(
-      `  (Plain http://<ip>:${PORT} also works but phone sensors may be blocked.)`,
-    );
+    console.log("  page links Tilt Tiles to this HTTPS address automatically.)");
     console.log("");
   });
 });
