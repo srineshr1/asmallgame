@@ -1,122 +1,226 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#0f1020" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>Tilt Tiles</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <!-- Game canvas (visible during play) -->
-  <canvas id="game"></canvas>
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+        />
+        <meta name="theme-color" content="#0a0a0c" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta
+            name="apple-mobile-web-app-status-bar-style"
+            content="black-translucent"
+        />
+        <title>Tilt Tiles</title>
+        <link rel="stylesheet" href="style.css" />
+    </head>
+    <body>
+        <!-- Game canvas (visible during play) -->
+        <canvas id="game"></canvas>
 
-  <!-- Overlay UI -->
-  <div id="ui">
-    <!-- In-game HUD -->
-    <div id="hud" class="hidden">
-      <span class="status" id="hud-left">Round 1</span>
-      <span class="status" id="hud-right"></span>
-    </div>
+        <!-- Overlay UI -->
+        <div id="ui">
+            <!-- In-game HUD -->
+            <div id="hud" class="hidden">
+                <span id="hud-left">Round 1</span>
+                <span id="hud-right"></span>
+            </div>
 
-    <!-- Preview countdown bar -->
-    <div id="timer-bar" class="hidden"><div id="timer-bar-fill"></div></div>
+            <!-- Timer bar -->
+            <div id="timer-bar" class="hidden">
+                <div id="timer-bar-fill"></div>
+            </div>
 
-    <!-- Spectating banner (shown after you're knocked out) -->
-    <div id="spectate-banner" class="banner hidden">👀 You're out — spectating</div>
+            <!-- Spectating banner -->
+            <div id="spectate-banner" class="banner hidden">
+                You're out &mdash; spectating
+            </div>
 
-    <!-- Transient toast (e.g. "Eliminated!") -->
-    <div id="toast" class="toast hidden"></div>
+            <!-- Toast -->
+            <div id="toast" class="toast hidden"></div>
 
-    <!-- TEMPORARY tuning panel (practice mode) -->
-    <div id="tune-panel" class="hidden">
-      <div class="tune-readout" id="tune-readout">tilt: —</div>
-      <div class="tune-rows">
-        <label>Max tilt (°)<input type="range" id="t-maxtilt" min="8" max="60" step="1"><span id="v-maxtilt"></span></label>
-        <label>Acceleration<input type="range" id="t-accel" min="3" max="40" step="0.5"><span id="v-accel"></span></label>
-        <label>Friction<input type="range" id="t-friction" min="0.2" max="9" step="0.1"><span id="v-friction"></span></label>
-        <label>Max speed<input type="range" id="t-maxspeed" min="2" max="20" step="0.5"><span id="v-maxspeed"></span></label>
-        <label>Bounce<input type="range" id="t-bounce" min="0" max="0.95" step="0.05"><span id="v-bounce"></span></label>
-        <label>Dead-zone (°)<input type="range" id="t-deadzone" min="0" max="12" step="0.5"><span id="v-deadzone"></span></label>
-      </div>
-      <div class="tune-actions">
-        <button id="tune-recenter" class="btn secondary">⟳ Recenter</button>
-        <button id="tune-copy" class="btn secondary">Copy</button>
-        <button id="tune-done" class="btn">Done</button>
-      </div>
-      <p class="tune-note">Changes save automatically and apply to your ball in every game.</p>
-    </div>
+            <!-- Settings / tuning panel -->
+            <div id="tune-panel" class="hidden">
+                <div class="tune-readout" id="tune-readout">tilt: &mdash;</div>
+                <div class="tune-rows">
+                    <label
+                        >Max tilt<input
+                            type="range"
+                            id="t-maxtilt"
+                            min="8"
+                            max="60"
+                            step="1" /><span id="v-maxtilt"></span
+                    ></label>
+                    <label
+                        >Acceleration<input
+                            type="range"
+                            id="t-accel"
+                            min="3"
+                            max="40"
+                            step="0.5" /><span id="v-accel"></span
+                    ></label>
+                    <label
+                        >Friction<input
+                            type="range"
+                            id="t-friction"
+                            min="0.2"
+                            max="9"
+                            step="0.1" /><span id="v-friction"></span
+                    ></label>
+                    <label
+                        >Max speed<input
+                            type="range"
+                            id="t-maxspeed"
+                            min="2"
+                            max="20"
+                            step="0.5" /><span id="v-maxspeed"></span
+                    ></label>
+                    <label
+                        >Bounce<input
+                            type="range"
+                            id="t-bounce"
+                            min="0"
+                            max="0.95"
+                            step="0.05" /><span id="v-bounce"></span
+                    ></label>
+                    <label
+                        >Dead-zone<input
+                            type="range"
+                            id="t-deadzone"
+                            min="0"
+                            max="12"
+                            step="0.5" /><span id="v-deadzone"></span
+                    ></label>
+                </div>
+                <div class="tune-actions">
+                    <button id="tune-recenter" class="btn secondary">
+                        Recenter
+                    </button>
+                    <button id="tune-copy" class="btn secondary">Copy</button>
+                    <button id="tune-done" class="btn">Done</button>
+                </div>
+                <p class="tune-note">
+                    Changes save automatically and apply to your ball in every
+                    game.
+                </p>
+            </div>
 
-    <!-- Menu: name + create/join a room -->
-    <div id="menu-screen" class="screen">
-      <div class="panel">
-        <h1>Tilt Tiles</h1>
-        <p class="sub">Tilt your phone to roll your ball.<br />Reach a <span class="g">green</span> tile before the <span class="r">red</span> ones vanish!</p>
-        <a id="secure-link" class="securelink hidden" href="#">📱 Tap here to enable tilt (secure link)</a>
-        <input id="name-input" class="field" type="text" maxlength="14" placeholder="Your name" autocomplete="off" />
-        <button id="create-btn" class="btn">Create Game</button>
-        <div class="divider"><span>or join</span></div>
-        <div class="join-row">
-          <input id="code-input" class="field code" type="text" maxlength="4" placeholder="CODE" autocomplete="off" autocapitalize="characters" />
-          <button id="join-btn" class="btn secondary">Join</button>
+            <!-- Menu screen -->
+            <div id="menu-screen" class="screen">
+                <div class="panel">
+                    <h1>Tilt Tiles</h1>
+                    <p class="sub">
+                        Tilt your phone to roll your ball onto a
+                        <span class="g">safe</span> tile before the
+                        <span class="r">unsafe</span> ones vanish.
+                    </p>
+                    <a id="secure-link" class="securelink hidden" href="#"
+                        >Open secure link for tilt controls</a
+                    >
+                    <input
+                        id="name-input"
+                        class="field"
+                        type="text"
+                        maxlength="14"
+                        placeholder="Your name"
+                        autocomplete="off"
+                    />
+                    <button id="solo-btn" class="btn">🎮 Single Player</button>
+                    <button id="create-btn" class="btn secondary">Create Game</button>
+                    <div class="divider"><span>or join a room</span></div>
+                    <div class="join-row">
+                        <input
+                            id="code-input"
+                            class="field code"
+                            type="text"
+                            maxlength="4"
+                            placeholder="CODE"
+                            autocomplete="off"
+                            autocapitalize="characters"
+                        />
+                        <button id="join-btn" class="btn secondary">
+                            Join
+                        </button>
+                    </div>
+                    <button id="tune-btn" class="text-btn">Settings</button>
+                    <p class="hint" id="menu-hint">
+                        On desktop, use the arrow keys or WASD.
+                    </p>
+                    <div class="instructions">
+                        <p>Tilt your phone to roll your ball</p>
+                        <p>Green tiles are safe, red ones vanish</p>
+                        <p>Get onto green before the timer runs out</p>
+                        <p>Last player standing wins</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lobby screen -->
+            <div id="lobby-screen" class="screen hidden">
+                <div class="panel">
+                    <p class="sub">Room code</p>
+                    <div id="room-code" class="roomcode">----</div>
+                    <p class="hint">
+                        Others on the same WiFi can join with this code.
+                    </p>
+                    <ul id="player-list" class="players"></ul>
+                    <button id="start-btn" class="btn hidden">
+                        Start Game
+                    </button>
+                    <p id="lobby-wait" class="hint">
+                        Waiting for host to start&hellip;
+                    </p>
+                    <button id="leave-btn" class="text-btn">Leave</button>
+                </div>
+            </div>
+
+            <!-- Results screen -->
+            <div id="over-screen" class="screen hidden">
+                <div class="panel">
+                    <h1 id="over-title">Game Over</h1>
+                    <p class="sub" id="over-sub">You survived 0 rounds.</p>
+                    <ol id="standings" class="standings"></ol>
+                    <button id="over-ready-btn" class="btn">✔ Ready to replay</button>
+                    <button id="over-start-btn" class="btn hidden">Start Game</button>
+                    <p id="over-ready-status" class="hint"></p>
+                    <button id="retry-btn" class="btn ghost">Leave to menu</button>
+                </div>
+            </div>
         </div>
-        <button id="tune-btn" class="btn ghost">🎛️ Controls &amp; Settings</button>
-        <p class="hint" id="menu-hint">On desktop, use the arrow keys or WASD.</p>
-        <ul class="howto">
-          <li>📱 Tilt your phone to roll your ball</li>
-          <li>🟢 Green tiles are safe — 🔴 red ones vanish</li>
-          <li>⏱️ Get onto green before the timer runs out</li>
-          <li>🏆 Last player standing wins</li>
-        </ul>
-      </div>
-    </div>
 
-    <!-- Lobby: room code + connected players + start -->
-    <div id="lobby-screen" class="screen hidden">
-      <div class="panel">
-        <p class="sub">Room code</p>
-        <div id="room-code" class="roomcode">----</div>
-        <p class="hint">Others join from <b>the same WiFi</b> using this code.</p>
-        <ul id="player-list" class="players"></ul>
-        <button id="start-btn" class="btn hidden">Start Game</button>
-        <p id="lobby-wait" class="hint">Waiting for the host to start…</p>
-        <button id="leave-btn" class="btn ghost">Leave</button>
-      </div>
-    </div>
+        <div id="errbar"></div>
 
-    <!-- Results / game over screen -->
-    <div id="over-screen" class="screen hidden">
-      <div class="panel">
-        <h1 id="over-title">Eliminated!</h1>
-        <p class="sub" id="over-sub">You survived 0 rounds.</p>
-        <ol id="standings" class="standings"></ol>
-        <button id="retry-btn" class="btn">Back to Menu</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="errbar"></div>
-
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    // Surface JS errors on screen (phones have no visible console).
-    (function () {
-      var bar = document.getElementById('errbar');
-      function show(msg) {
-        bar.textContent = '⚠ ' + msg;
-        bar.style.display = 'block';
-      }
-      window.addEventListener('error', function (e) {
-        show((e.message || 'Error') + (e.filename ? ' @ ' + e.filename.split('/').pop() + ':' + e.lineno : ''));
-      });
-      window.addEventListener('unhandledrejection', function (e) {
-        show('Promise: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
-      });
-    })();
-  </script>
-  <script type="module" src="js/main.js"></script>
-</body>
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            (function () {
+                var bar = document.getElementById("errbar");
+                function show(msg) {
+                    bar.textContent = "Error: " + msg;
+                    bar.style.display = "block";
+                }
+                window.addEventListener("error", function (e) {
+                    show(
+                        (e.message || "Error") +
+                            (e.filename
+                                ? " @ " +
+                                  e.filename.split("/").pop() +
+                                  ":" +
+                                  e.lineno
+                                : ""),
+                    );
+                });
+                window.addEventListener("unhandledrejection", function (e) {
+                    show(
+                        "Promise: " +
+                            (e.reason && e.reason.message
+                                ? e.reason.message
+                                : e.reason),
+                    );
+                });
+            })();
+        </script>
+        <script type="module" src="js/main.js"></script>
+    </body>
 </html>

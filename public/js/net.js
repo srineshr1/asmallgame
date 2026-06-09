@@ -27,6 +27,14 @@ export class NetClient {
     });
   }
 
+  // Start a casual single-player game immediately.
+  soloStart(name, physics) {
+    return this._emit('solo:start', { name, physics }).then((res) => {
+      if (res.ok) { this.code = res.code; this.youId = res.youId; }
+      return res;
+    });
+  }
+
   // Update control physics (fire-and-forget).
   sendSettings(physics) {
     this.socket.emit('room:settings', { physics });
@@ -39,6 +47,10 @@ export class NetClient {
 
   startGame() {
     return this._emit('room:start');
+  }
+
+  toggleReady() {
+    return this._emit('room:ready');
   }
 
   // --- Event subscription ---

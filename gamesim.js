@@ -5,9 +5,9 @@
 import { CONFIG } from './public/js/config.js';
 import { integrate, resolveBallCollisions } from './public/js/physics.js';
 import {
-  PHASE, previewDuration, ELIMINATE_DURATION, INTERMISSION_DURATION, REGROW_THRESHOLD,
+  PHASE, previewDuration, ELIMINATE_DURATION, INTERMISSION_DURATION,
   makeFullGrid, selectSafeTiles, applyPreviewFlash, eliminateUnsafe,
-  aliveTiles, ballOnAliveTile,
+  ballOnAliveTile,
 } from './public/js/rounds.js';
 
 const TICK_HZ = 30;
@@ -29,10 +29,11 @@ function spawnPos(idx, n) {
 }
 
 export class GameSim {
-  constructor(room, io, onEnd) {
+  constructor(room, io, onEnd, solo = false) {
     this.room = room;
     this.io = io;
     this.onEnd = onEnd;
+    this.solo = solo;
 
     this.tiles = makeFullGrid();
     this.round = 0;
@@ -101,9 +102,9 @@ export class GameSim {
 
   _beginPreview() {
     this.round += 1;
-    if (aliveTiles(this.tiles).length < REGROW_THRESHOLD) {
-      this.tiles = makeFullGrid();
-    }
+    // The board always refills — removed tiles come back; difficulty rises via
+    // fewer safe tiles and shorter previews each round.
+    this.tiles = makeFullGrid();
     const aliveBalls = [...this.balls.values()].filter((b) => b.alive).length;
     // Guarantee at least one safe tile per surviving player.
     this.safeSet = selectSafeTiles(this.tiles, this.round, Math.max(1, aliveBalls));
@@ -169,10 +170,12 @@ export class GameSim {
     }
   }
 
-  // Ends the game when 0 or 1 players remain. Returns true if it ended.
+  // Ends the game when too few players remain.
+  // Multiplayer: last player standing (<= 1 alive). Solo: only when the player falls.
   _checkWin() {
     const alive = [...this.balls.values()].filter((b) => b.alive);
-    if (alive.length > 1) return false;
+    const threshold = this.solo ? 0 : 1;
+    if (alive.length > threshold) return false;
 
     const winner = alive[0] || null;
     if (winner) {
@@ -192,9 +195,12 @@ export class GameSim {
     this.phase = PHASE.GAMEOVER;
     this._broadcast();
     this.io.to(this.room.code).emit('game:over', {
+      solo: this.solo,
       winnerId: winner ? winner.id : null,
       winnerName: winner ? winner.name : null,
+      // In solo, the round you fell on; the last fully-survived round is rounds-1.
       rounds: this.round,
+      roundsSurvived: Math.max(0, this.round - 1),
       standings,
     });
     this.stop();

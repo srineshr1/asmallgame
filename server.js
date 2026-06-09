@@ -106,6 +106,7 @@ function playerList(room) {
     name: p.name,
     colorIndex: p.colorIndex,
     isHost: p.id === room.hostId,
+    ready: room.ready.has(p.id),
   }));
 }
 
@@ -115,6 +116,7 @@ function broadcastLobby(room) {
     hostId: room.hostId,
     players: playerList(room),
     maxPlayers: MAX_PLAYERS,
+    hasPlayed: room.hasPlayed,
   });
 }
 
@@ -125,6 +127,7 @@ function removePlayerEverywhere(socket) {
   if (!room) return;
 
   room.players.delete(socket.id);
+  room.ready.delete(socket.id);
   socket.leave(code);
   socket.data.roomCode = null;
 
@@ -165,6 +168,9 @@ io.on('connection', (socket) => {
       players: new Map(),
       phase: 'lobby',
       game: null,
+      ready: new Set(),
+      hasPlayed: false,
+      solo: false,
     };
     rooms.set(code, room);
 
@@ -176,6 +182,41 @@ io.on('connection', (socket) => {
     console.log(`[room] ${code} created by ${player.name}`);
     cb?.({ ok: true, code, youId: socket.id });
     broadcastLobby(room);
+  });
+
+  // Start a casual single-player game immediately (no lobby, survive as long as you can).
+  socket.on('solo:start', ({ name, physics } = {}, cb) => {
+    removePlayerEverywhere(socket);
+
+    const code = makeRoomCode();
+    const room = {
+      code,
+      hostId: socket.id,
+      players: new Map(),
+      phase: 'playing',
+      game: null,
+      ready: new Set(),
+      hasPlayed: true,
+      solo: true,
+    };
+    rooms.set(code, room);
+
+    const player = { id: socket.id, name: sanitizeName(name), colorIndex: 0, physics: sanitizePhysics(physics) };
+    room.players.set(socket.id, player);
+    socket.join(code);
+    socket.data.roomCode = code;
+
+    console.log(`[room] ${code} solo game started by ${player.name}`);
+    cb?.({ ok: true, code, youId: socket.id });
+
+    io.to(code).emit('game:start', { players: playerList(room), solo: true });
+    room.game = new GameSim(room, io, () => {
+      room.game = null;
+      room.phase = 'lobby';
+      room.ready.clear();
+      broadcastLobby(room);
+    }, true);
+    room.game.start();
   });
 
   // Join an existing room by code.
@@ -209,6 +250,16 @@ io.on('connection', (socket) => {
     if (room.game) room.game.setPhysics(socket.id, player.physics);
   });
 
+  // Toggle this player's "ready" state (used for replays on the results screen).
+  socket.on('room:ready', (cb) => {
+    const room = rooms.get(socket.data.roomCode);
+    if (!room || !room.players.has(socket.id)) return cb?.({ ok: false });
+    if (room.ready.has(socket.id)) room.ready.delete(socket.id);
+    else room.ready.add(socket.id);
+    cb?.({ ok: true, ready: room.ready.has(socket.id) });
+    broadcastLobby(room);
+  });
+
   // Leave the current room (back to menu).
   socket.on('room:leave', (cb) => {
     removePlayerEverywhere(socket);
@@ -222,18 +273,28 @@ io.on('connection', (socket) => {
     if (room.hostId !== socket.id) return cb?.({ ok: false, error: 'Only the host can start' });
     if (room.players.size < 1) return cb?.({ ok: false, error: 'Need at least 1 player' });
 
+    // On replays, require every non-host player to be ready first.
+    if (room.hasPlayed && room.players.size > 1) {
+      const others = [...room.players.keys()].filter((id) => id !== room.hostId);
+      const allReady = others.every((id) => room.ready.has(id));
+      if (!allReady) return cb?.({ ok: false, error: 'Waiting for all players to ready up' });
+    }
+
+    room.hasPlayed = true;
+    room.ready.clear();
     room.phase = 'playing';
     console.log(`[room] ${room.code} game starting with ${room.players.size} players`);
     cb?.({ ok: true });
 
     // Tell clients to switch to the game view, then start the authoritative sim.
-    io.to(room.code).emit('game:start', { players: playerList(room) });
+    io.to(room.code).emit('game:start', { players: playerList(room), solo: room.solo });
     room.game = new GameSim(room, io, () => {
       // Game ended — return the room to the lobby so they can play again.
       room.game = null;
       room.phase = 'lobby';
+      room.ready.clear();
       broadcastLobby(room);
-    });
+    }, room.solo);
     room.game.start();
   });
 

@@ -12,22 +12,19 @@ export const PHASE = {
   GAMEOVER: 'gameover',
 };
 
-// Difficulty curve: fraction of currently-alive tiles that stay safe.
-// Starts generous, tightens each round, floored so the board can't vanish instantly.
+// Difficulty curve: fraction of the (now always full) board that stays safe.
+// Starts generous, tightens each round to a tense minimum.
 export function safeFraction(round) {
-  return Math.max(0.28, 0.62 - 0.06 * (round - 1));
+  return Math.max(0.14, 0.58 - 0.055 * (round - 1));
 }
 
 // Preview duration in seconds — shrinks with rounds for rising tension.
 export function previewDuration(round) {
-  return Math.max(1.4, 3.6 - 0.22 * (round - 1));
+  return Math.max(1.0, 3.4 - 0.2 * (round - 1));
 }
 
-export const ELIMINATE_DURATION = 0.6;     // seconds tiles take to "fall"
-export const INTERMISSION_DURATION = 1.1;   // pause before next preview
-
-// When alive tiles drop below this, regrow the board (a new "stage").
-export const REGROW_THRESHOLD = 4;
+export const ELIMINATE_DURATION = 0.55;     // seconds tiles take to "fall"
+export const INTERMISSION_DURATION = 0.9;    // pause (board refills) before next preview
 
 // Build a full grid of alive tiles.
 export function makeFullGrid() {
